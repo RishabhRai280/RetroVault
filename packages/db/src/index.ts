@@ -20,6 +20,12 @@ export const settingsStore = localforage.createInstance({
     description: "User preferences"
 });
 
+export const playHistoryStore = localforage.createInstance({
+    name: "RetroVault",
+    storeName: "play_history",
+    description: "User playtime and last played timestamps"
+});
+
 // --- Favorites Storage ---
 
 export const FavoritesStorage = {
@@ -101,16 +107,73 @@ export const SaveStateStorage = {
      */
     getStatesForGame: async (gameId: string): Promise<SaveStateMetadata[]> => {
         return await saveStateStore.getItem<SaveStateMetadata[]>(`meta_${gameId}`) || [];
+    },
+
+    /**
+     * Saves an auto-state blob for a specific game.
+     */
+    saveAutoState: async (gameId: string, blob: Blob): Promise<void> => {
+        await saveStateStore.setItem(`auto_save_blob_${gameId}`, blob);
+    },
+
+    /**
+     * Loads the auto-state blob for a specific game.
+     */
+    loadAutoState: async (gameId: string): Promise<Blob | null> => {
+        return await saveStateStore.getItem<Blob>(`auto_save_blob_${gameId}`);
+    }
+};
+
+// --- Play History Storage ---
+
+export interface PlayHistory {
+    gameId: string;
+    lastPlayed: number; // Timestamp
+    timePlayedSeconds: number;
+}
+
+export const PlayHistoryStorage = {
+    getPlayHistory: async (gameId: string): Promise<PlayHistory | null> => {
+        return await playHistoryStore.getItem<PlayHistory>(gameId);
+    },
+    updatePlayHistory: async (gameId: string, timePlayedIncrement: number): Promise<PlayHistory> => {
+        let history = await playHistoryStore.getItem<PlayHistory>(gameId);
+        if (!history) {
+            history = { gameId, lastPlayed: Date.now(), timePlayedSeconds: 0 };
+        }
+        history.lastPlayed = Date.now();
+        history.timePlayedSeconds += timePlayedIncrement;
+        await playHistoryStore.setItem(gameId, history);
+        return history;
+    },
+    getAllPlayHistory: async (): Promise<Record<string, PlayHistory>> => {
+        const result: Record<string, PlayHistory> = {};
+        await playHistoryStore.iterate((value: PlayHistory, key: string) => {
+            result[key] = value;
+        });
+        return result;
     }
 };
 
 // --- Settings Storage ---
+
+export interface KeyBindings {
+    up: string;
+    down: string;
+    left: string;
+    right: string;
+    a: string;
+    b: string;
+    start: string;
+    select: string;
+}
 
 export interface UserSettings {
     volume: number; // 0.0 to 1.0
     crtFilterEnabled: boolean;
     scanlinesEnabled: boolean;
     colorTheme: 'arcade-neon' | 'gameboy-dmg' | 'virtual-boy';
+    keyBindings: KeyBindings;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -118,6 +181,16 @@ const DEFAULT_SETTINGS: UserSettings = {
     crtFilterEnabled: false,
     scanlinesEnabled: false,
     colorTheme: 'arcade-neon',
+    keyBindings: {
+        up: 'up',
+        down: 'down',
+        left: 'left',
+        right: 'right',
+        a: 'x',
+        b: 'z',
+        start: 'enter',
+        select: 'shift'
+    }
 };
 
 export const SettingsStorage = {

@@ -50,11 +50,145 @@
     line-height: 1.5;
     min-height: 100vh;
     overflow: hidden;
-    /* Soft cosmic gradient background */
+    /* Nostalgic Warm Wood Desk Background */
+    background-color: #3b2313;
     background-image:
-      radial-gradient(circle at 15% 50%, rgba(0, 255, 204, 0.03) 0%, transparent 50%),
-      radial-gradient(circle at 85% 30%, rgba(138, 43, 226, 0.05) 0%, transparent 50%);
+      /* Warm desk lamp glow */
+      radial-gradient(circle at 50% 40%, rgba(255, 230, 200, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%),
+      /* Wood grain pattern (linear gradients) */
+      repeating-linear-gradient(95deg,
+        rgba(0, 0, 0, 0.1) 0px,
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 15px),
+      repeating-linear-gradient(90deg,
+        rgba(0, 0, 0, 0.05) 0px,
+        rgba(0, 0, 0, 0.05) 2px,
+        transparent 2px,
+        transparent 10px);
+    background-blend-mode: overlay, multiply, normal;
   }
+}
+
+@keyframes cartridge-insert {
+  0% {
+    transform: translate(-50%, -200px);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -100px);
+  }
+
+  60% {
+    transform: translate(-50%, 0px);
+    opacity: 1;
+  }
+
+  80% {
+    transform: translate(-50%, 8px);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, 5px);
+    opacity: 1;
+  }
+}
+
+.animate-cartridge-insert {
+  animation: cartridge-insert 0.9s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.retro-pattern {
+  background-color: #2a2a2a;
+  background-image:
+    linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333),
+    linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
+
+/* Telemetry Graph Animations */
+@keyframes graph-bounce-1 {
+
+  0%,
+  100% {
+    height: 40%;
+  }
+
+  50% {
+    height: 85%;
+  }
+}
+
+@keyframes graph-bounce-2 {
+
+  0%,
+  100% {
+    height: 70%;
+  }
+
+  50% {
+    height: 30%;
+  }
+}
+
+@keyframes graph-bounce-3 {
+
+  0%,
+  100% {
+    height: 20%;
+  }
+
+  50% {
+    height: 90%;
+  }
+}
+
+@keyframes graph-bounce-4 {
+
+  0%,
+  100% {
+    height: 60%;
+  }
+
+  50% {
+    height: 45%;
+  }
+}
+
+@keyframes graph-bounce-5 {
+
+  0%,
+  100% {
+    height: 90%;
+  }
+
+  50% {
+    height: 25%;
+  }
+}
+
+.graph-bar-1 {
+  animation: graph-bounce-1 1.2s ease-in-out infinite;
+}
+
+.graph-bar-2 {
+  animation: graph-bounce-2 0.8s ease-in-out infinite;
+}
+
+.graph-bar-3 {
+  animation: graph-bounce-3 1.5s ease-in-out infinite;
+}
+
+.graph-bar-4 {
+  animation: graph-bounce-4 1.1s ease-in-out infinite;
+}
+
+.graph-bar-5 {
+  animation: graph-bounce-5 0.9s ease-in-out infinite;
 }
 
 @layer components {
@@ -114,6 +248,62 @@
     align-items: center;
     justify-content: center;
   }
+}
+
+/* Game Boy Bezel & Shell Textures */
+.texture-plastic {
+  position: relative;
+}
+
+.texture-plastic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.08;
+  /* Very subtle grain */
+  border-radius: inherit;
+  mix-blend-mode: multiply;
+  z-index: 50;
+  /* Ensure it stays above gradients but below content */
+}
+
+/* Mechanical Volume Slider */
+.slider-mechanical {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.slider-mechanical::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  border: 1px solid #333;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.slider-mechanical::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 36px;
+  background: linear-gradient(to bottom, #cfccbe, #a8a598);
+  border: 1px solid #666;
+  border-radius: 2px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5), inset 0 2px 2px rgba(255, 255, 255, 0.8), inset 0 -2px 2px rgba(0, 0, 0, 0.4);
+  margin-top: -15px;
+  /* Centers the thumb vertically on the track */
+  cursor: grab;
+  position: relative;
+}
+
+.slider-mechanical::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  background: linear-gradient(to bottom, #a8a598, #8c897d);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5), inset 0 2px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* Animations */
