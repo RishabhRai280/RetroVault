@@ -4,6 +4,7 @@ export interface GameMetadata {
     fileName: string;
     sizeBytes: number;
     platform: 'GBA' | 'SNES' | 'NES' | 'UNKNOWN';
+    boxArtUrl?: string;
 }
 
 export interface LibraryState {
@@ -31,6 +32,31 @@ export const extractMetadataFromName = (fileName: string): Partial<GameMetadata>
 };
 
 /**
+ * Generates a Libretro thumbnail URL for a given game.
+ * Libretro requires strict naming patterns, usually replacing spaces with underscores
+ * and removing special characters for the URL request.
+ */
+export const getBoxArtUrl = (title: string, platform: GameMetadata['platform']): string | undefined => {
+    if (platform === 'UNKNOWN') return undefined;
+
+    // Map our internal platform enums to Libretro's system repository names
+    const systemMap: Record<string, string> = {
+        'GBA': 'Nintendo_-_Game_Boy_Advance',
+        'SNES': 'Nintendo_-_Super_Nintendo_Entertainment_System',
+        'NES': 'Nintendo_-_Nintendo_Entertainment_System'
+    };
+
+    const systemName = systemMap[platform];
+    if (!systemName) return undefined;
+
+    // Libretro URLs need spaces replaced with underscores, and strict URI encoding for special chars
+    const formattedTitle = encodeURIComponent(title.replace(/ /g, '_'));
+
+    // Direct link to the raw GitHub content
+    return `https://raw.githubusercontent.com/libretro-thumbnails/${systemName}/master/Named_Boxarts/${formattedTitle}.png`;
+};
+
+/**
  * Traverses a user-provided directory handle using the browser's File System Access API.
  * It filters down to valid ROM extensions and builds a list of `GameMetadata` objects.
  * 
@@ -48,13 +74,16 @@ export const scanDirectory = async (dirHandle: FileSystemDirectoryHandle): Promi
                 // @ts-ignore
                 const file = await entry.getFile();
                 const metadata = extractMetadataFromName(entry.name);
+                const titleMatch = metadata.title || entry.name;
+                const platformMatch = metadata.platform || 'UNKNOWN';
 
                 games.push({
                     id: `${entry.name}-${file.size}`,
                     fileName: entry.name,
-                    title: metadata.title || entry.name,
-                    platform: metadata.platform || 'UNKNOWN',
-                    sizeBytes: file.size
+                    title: titleMatch,
+                    platform: platformMatch,
+                    sizeBytes: file.size,
+                    boxArtUrl: getBoxArtUrl(titleMatch, platformMatch)
                 });
             }
         }

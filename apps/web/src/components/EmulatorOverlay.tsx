@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { Nostalgist } from 'nostalgist';
-import { Maximize, Minimize, X, Settings2 } from 'lucide-react';
+import { Maximize, Minimize, X, Settings2, Save, Download, Image as ImageIcon, Pause, Play as PlayIcon } from 'lucide-react';
 import { Button } from '@retrovault/ui';
+import { SaveStateStorage, SettingsStorage, type UserSettings } from '@retrovault/db';
 
 /**
  * Props expected by the EmulatorOverlay component.
  */
 interface EmulatorOverlayProps {
+    gameId: string;
+    gameTitle: string;
     romFile: File | null; // The exact binary snapshot file returned by File System Access API
     platform: 'GBA' | 'SNES' | 'NES' | 'UNKNOWN'; // The platform enum to decide which RetroArch core to use
     onClose: () => void; // Callback fired when the user selects the X/close button
+    onOpenSettings: () => void; // Connect to global settings modal
 }
 
 /**
@@ -17,11 +21,32 @@ interface EmulatorOverlayProps {
  * It takes care of launching the emulator into a canvas, keeping track of fullscreen state,
  * and cleaning up the instance when the modal is closed.
  */
-export const EmulatorOverlay = ({ romFile, platform, onClose }: EmulatorOverlayProps) => {
+export const EmulatorOverlay = ({ gameId, gameTitle, romFile, platform, onClose, onOpenSettings }: EmulatorOverlayProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [nostalgist, setNostalgist] = useState<Nostalgist | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isPaused, setIsPaused] = useState(false);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+
+    // Initial settings load
+    useEffect(() => {
+        SettingsStorage.getSettings().then(setUserSettings);
+    }, []);
+
+    // Re-fetch settings when coming back from Pause state (which Settings modal triggers)
+    useEffect(() => {
+        if (!isPaused) {
+            SettingsStorage.getSettings().then(setUserSettings);
+        }
+    }, [isPaused]);
+
+    const showStatus = (msg: string) => {
+        setStatusMessage(msg);
+        setTimeout(() => setStatusMessage(null), 3000);
+    };
 
     // Effect handling the Nostalgist emulator lifecycle (initialization and cleanup)
     useEffect(() => {
@@ -46,6 +71,7 @@ export const EmulatorOverlay = ({ romFile, platform, onClose }: EmulatorOverlayP
                 });
 
                 if (isMounted) {
+                    setNostalgist(instance);
                     setIsLoading(false);
                 }
             } catch (err) {
@@ -63,6 +89,64 @@ export const EmulatorOverlay = ({ romFile, platform, onClose }: EmulatorOverlayP
             }
         };
     }, [romFile, platform]);
+
+    // --- Actions ---
+
+    const handleSaveState = async () => {
+        if (!nostalgist) return;
+        try {
+            const { state } = await nostalgist.saveState();
+            await SaveStateStorage.saveState(gameId, gameTitle, state);
+            showStatus("State Saved!");
+        } catch (err) {
+            console.error("Failed to save state", err);
+            showStatus("Failed to save");
+        }
+    };
+
+    const handleLoadState = async () => {
+        if (!nostalgist) return;
+        try {
+            const states = await SaveStateStorage.getStatesForGame(gameId);
+            if (states.length > 0) {
+                const latest = states[states.length - 1];
+                const blob = await SaveStateStorage.loadState(latest.id);
+                if (blob) {
+                    await nostalgist.loadState(blob);
+                    showStatus("State Loaded!");
+                    return;
+                }
+            }
+            showStatus("No saved states");
+        } catch (err) {
+            console.error("Failed to load state", err);
+            showStatus("Failed to load");
+        }
+    };
+
+    const handleScreenshot = () => {
+        if (canvasRef.current) {
+            const dataUrl = canvasRef.current.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `${gameTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_screenshot.png`;
+            link.href = dataUrl;
+            link.click();
+            showStatus("Screenshot Saved");
+        }
+    };
+
+    const handleTogglePause = () => {
+        if (!nostalgist) return;
+        if (isPaused) {
+            nostalgist.resume();
+            setIsPaused(false);
+            showStatus("Resumed");
+        } else {
+            nostalgist.pause();
+            setIsPaused(true);
+            showStatus("Paused");
+        }
+    };
 
     // Request or exit native browser fullscreen on the container element
     const toggleFullscreen = async () => {
@@ -99,15 +183,35 @@ export const EmulatorOverlay = ({ romFile, platform, onClose }: EmulatorOverlayP
                     <h2 className="text-white font-bold ml-2 text-shadow drop-shadow-md">
                         {romFile.name}
                     </h2>
-                    <div className="flex gap-2">
-                        <Button variant="icon" size="sm" onClick={toggleFullscreen}>
-                            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                    <div className="flex gap-2 items-center">
+                        {statusMessage && (
+                            <span className="text-xs text-[var(--retro-neon)] mr-4 animate-fade-in">{statusMessage}</span>
+                        )}
+                        <Button variant="icon" size="sm" onClick={handleTogglePause} title={isPaused ? "Resume" : "Pause"}>
+                            {isPaused ? <PlayIcon size={18} className="text-green-400" /> : <Pause size={18} />}
                         </Button>
-                        <Button variant="icon" size="sm">
-                            <Settings2 size={20} />
+                        <div className="w-px h-5 bg-white/20 mx-1"></div>
+                        <Button variant="icon" size="sm" onClick={handleSaveState} title="Save State">
+                            <Save size={18} />
                         </Button>
-                        <Button variant="icon" size="sm" onClick={onClose} className="hover:bg-red-500/20 text-red-500 hover:text-red-400">
-                            <X size={20} />
+                        <Button variant="icon" size="sm" onClick={handleLoadState} title="Load State">
+                            <Download size={18} />
+                        </Button>
+                        <Button variant="icon" size="sm" onClick={handleScreenshot} title="Screenshot">
+                            <ImageIcon size={18} />
+                        </Button>
+                        <div className="w-px h-5 bg-white/20 mx-1"></div>
+                        <Button variant="icon" size="sm" onClick={toggleFullscreen} title="Fullscreen">
+                            {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                        </Button>
+                        <Button variant="icon" size="sm" title="Settings" onClick={() => {
+                            if (!isPaused && nostalgist) handleTogglePause(); // Optionally pause before opening settings
+                            onOpenSettings();
+                        }}>
+                            <Settings2 size={18} />
+                        </Button>
+                        <Button variant="icon" size="sm" onClick={onClose} className="hover:bg-red-500/20 text-red-500 hover:text-red-400" title="Close">
+                            <X size={18} />
                         </Button>
                     </div>
                 </div>
@@ -120,12 +224,19 @@ export const EmulatorOverlay = ({ romFile, platform, onClose }: EmulatorOverlayP
                             <p className="animate-pulse tracking-widest font-medium">INSERTING CARTRIDGE...</p>
                         </div>
                     )}
-                    <canvas
-                        ref={canvasRef}
-                        className="w-full h-full object-contain pixelated"
-                        style={{ imageRendering: 'pixelated' }}
-                        tabIndex={0}
-                    />
+
+                    {/* Visual Filters applied via CSS pseudo-elements or wrapper classes */}
+                    <div className={`relative w-full h-full ${userSettings?.crtFilterEnabled ? 'crt-filter text-shadow-glow' : ''} ${userSettings?.scanlinesEnabled ? 'scanlines' : ''}`}>
+                        <canvas
+                            ref={canvasRef}
+                            className="w-full h-full object-contain pixelated"
+                            style={{ imageRendering: 'pixelated' }}
+                            tabIndex={0}
+                        />
+                        {/* CSS Overlay for advanced retro effects */}
+                        {userSettings?.crtFilterEnabled && <div className="absolute inset-0 pointer-events-none rounded-[10%] shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]"></div>}
+                        {userSettings?.scanlinesEnabled && <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px]"></div>}
+                    </div>
                 </div>
             </div>
         </div>

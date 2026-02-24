@@ -9,7 +9,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         return (
             <div
                 ref={ref}
-                className={`glass-panel rounded-xl overflow-hidden ${hoverable ? 'transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] cursor-pointer' : ''
+                className={`glass-panel overflow-hidden ${hoverable ? 'glass-card cursor-pointer' : ''
                     } ${className}`}
                 {...props}
             >

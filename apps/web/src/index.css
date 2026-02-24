@@ -11,20 +11,43 @@
 
 @layer base {
   :root {
-    --retro-dark: #0a0a0f;
-    --retro-darker: #050508;
-    --retro-card: rgba(20, 20, 30, 0.6);
-    --retro-neon: #00ffcc;
-    --retro-neon-dim: rgba(0, 255, 204, 0.2);
-    --retro-text: #e0e0e0;
-    --retro-text-muted: #808090;
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --retro-dark: #000000;
+    --retro-darker: #050505;
+    --retro-card: #111111;
+    --retro-neon: #39ff14;
+    /* Arcade Green */
+    --retro-neon-dim: rgba(57, 255, 20, 0.2);
+    --retro-text: #ffffff;
+    --retro-text-muted: #aaaaaa;
+  }
+
+  .theme-gameboy-dmg {
+    --retro-dark: #0f380f;
+    --retro-darker: #081820;
+    --retro-card: #306230;
+    --retro-neon: #8bac0f;
+    /* Gameboy Screen Green */
+    --retro-neon-dim: rgba(139, 172, 15, 0.3);
+    --retro-text: #e0f8d0;
+    --retro-text-muted: #9bbc0f;
+  }
+
+  .theme-virtual-boy {
+    --retro-dark: #2b0000;
+    --retro-darker: #1a0000;
+    --retro-card: #5e0000;
+    --retro-neon: #ff0000;
+    /* Virtual Boy Red */
+    --retro-neon-dim: rgba(255, 0, 0, 0.3);
+    --retro-text: #ff8888;
+    --retro-text-muted: #cc4444;
   }
 
   body {
     background-color: var(--retro-darker);
     color: var(--retro-text);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Press Start 2P', monospace;
+    line-height: 1.5;
     min-height: 100vh;
     overflow: hidden;
     /* Soft cosmic gradient background */
@@ -36,21 +59,23 @@
 
 @layer components {
 
-  /* Glass-morphism Utilities */
+  /* 8-Bit UI Utilities */
   .glass-panel {
     background-color: var(--retro-card);
-    backdrop-filter: blur(24px);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 4px solid var(--retro-neon);
+    /* Thick borders */
+    box-shadow: 6px 6px 0px 0px rgba(57, 255, 20, 0.3);
+    /* Blocky shadow */
   }
 
   .glass-card {
-    transition-property: all;
-    transition-duration: 300ms;
+    transition-property: transform, box-shadow;
+    transition-duration: 100ms;
   }
 
   .glass-card:hover {
-    border-color: var(--retro-neon-dim);
+    transform: translate(-4px, -4px);
+    box-shadow: 10px 10px 0px 0px var(--retro-neon);
   }
 
   /* Custom Scrollbar */
@@ -106,4 +131,20 @@
 
 .animate-fade-in {
   animation: fade-in 0.4s ease-out forwards;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
 }
