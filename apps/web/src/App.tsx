@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button, Card } from '@retrovault/ui';
-import { Gamepad2, Settings2, Menu, X, Maximize } from 'lucide-react';
+import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizontal, X, Menu, Maximize } from 'lucide-react';
 import { Nostalgist } from 'nostalgist';
 import { scanDirectory } from '@retrovault/core';
 import type { GameMetadata } from '@retrovault/core';
@@ -22,7 +22,12 @@ function App() {
   const [emulatorInstance, setEmulatorInstance] = useState<Nostalgist | null>(null);
 
   const [telemetry, setTelemetry] = useState<{ fps: number; ram: number; vram: number; history: number[] }>({ fps: 0, ram: 0, vram: 0, history: new Array(20).fill(0) });
+  // consoleScale: computed from the actual container pixel size by ResizeObserver.
+  // This is the only reliable cross-device way to fit the 490×860 Game Boy shell.
+  const [consoleScale, setConsoleScale] = useState(1);
+  const consoleContainerRef = useRef<HTMLDivElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'library' | 'saves' | 'logs' | 'telemetry' | 'config'>('library');
   const [isKeyBindingModalOpen, setIsKeyBindingModalOpen] = useState(false);
   const [listeningKey, setListeningKey] = useState<keyof KeyBindings | null>(null);
   const [playHistory, setPlayHistory] = useState<Record<string, PlayHistory>>({});
@@ -94,6 +99,24 @@ function App() {
   useEffect(() => {
     SettingsStorage.getSettings().then(setUserSettings);
     PlayHistoryStorage.getAllPlayHistory().then(setPlayHistory);
+  }, []);
+
+  // ResizeObserver: measures the actual container pixel dimensions and computes
+  // the scale that fits the 490×860 Game Boy shell into the available space.
+  // Runs on mount and whenever the container is resized (orientation change, etc.).
+  useEffect(() => {
+    const el = consoleContainerRef.current;
+    if (!el) return;
+    const compute = () => {
+      const { clientWidth: w, clientHeight: h } = el;
+      if (w === 0 || h === 0) return;
+      const scale = Math.min(w / 490, h / 860, 1.15);
+      setConsoleScale(scale);
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const updateSettings = async (updates: Partial<UserSettings>) => {
@@ -244,15 +267,7 @@ function App() {
       {userSettings?.crtFilterEnabled && <div className="fixed inset-0 pointer-events-none rounded-[10%] shadow-[inset_0_0_100px_rgba(0,0,0,0.5)] z-50"></div>}
       {userSettings?.scanlinesEnabled && <div className="fixed inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-50 opacity-20"></div>}
 
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 right-4 z-50">
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-3 bg-[#1a1a1a] text-[var(--retro-neon)] rounded-full border-2 border-[#333] shadow-lg active:scale-95 transition-transform flex items-center justify-center"
-        >
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
+
 
       {/* Key Binding Modal */}
       {isKeyBindingModalOpen && (
@@ -291,11 +306,11 @@ function App() {
         </div>
       )}
 
-      {/* Main Layout Container - Utilizing strictly fluid heights */}
-      <main className="flex flex-1 w-full max-w-[1500px] mx-auto overflow-hidden p-2 sm:p-4 lg:p-6 gap-6 relative">
+      {/* Main Layout Container */}
+      <main className="flex flex-1 w-full max-w-[1500px] mx-auto overflow-hidden p-0 lg:p-6 gap-6 relative">
 
-        {/* LEFT COLUMN */}
-        <aside className={`${isMobileMenuOpen ? 'absolute inset-0 z-40 bg-black/90 p-4' : 'hidden'} lg:static lg:bg-transparent lg:p-0 lg:flex flex-col w-full lg:w-[340px] shrink-0 gap-4 h-full`}>
+        {/* LEFT COLUMN — hidden on mobile, shown on desktop */}
+        <aside className="hidden lg:flex flex-col w-full lg:w-[340px] shrink-0 gap-4 h-full">
 
           {/* Game Library: Flexes to fill available space */}
           <Card className="flex flex-col flex-1 min-h-0 p-4 !rounded-xl !border-[0] shadow-xl bg-[#e0ddcf]">
@@ -466,11 +481,23 @@ function App() {
           </Card>
         </aside>
 
-        {/* Center Column: Embedded Game Boy Console */}
-        <div className={`flex-1 flex items-center justify-center min-w-0 h-full relative ${isMobileMenuOpen ? 'hidden lg:flex' : 'flex'}`}>
+        {/* Center Column — ref measured by ResizeObserver to compute exact Game Boy scale */}
+        <div
+          ref={consoleContainerRef}
+          className="flex flex-1 items-center justify-center min-w-0 h-full max-h-[calc(100dvh-60px)] lg:max-h-none overflow-hidden relative"
+        >
 
-          {/* Custom RetroVault Console Shell (Scaled up for better visibility) */}
-          <div className="w-[490px] h-[860px] shrink-0 bg-gradient-to-br from-[#f2f2f0] to-[#cdc9b8] rounded-[2rem] sm:rounded-none sm:rounded-tl-2xl sm:rounded-tr-2xl sm:rounded-bl-[2.5rem] sm:rounded-br-[7rem] pt-8 sm:pt-6 pb-8 px-4 sm:px-6 flex flex-col items-center shadow-none sm:shadow-[0_30px_60px_rgba(0,0,0,0.6),inset_-5px_-5px_20px_rgba(0,0,0,0.1),inset_5px_5px_15px_rgba(255,255,255,0.8)] border-0 sm:border-b-[8px] sm:border-r-[4px] border-[#c0bdae] ring-1 ring-black/5 relative origin-center z-10 texture-plastic" style={{ transform: 'scale(min(1.15, calc(100vh / 780)))' }}>
+          {/* Game Boy shell — JS-computed scale keeps all buttons accessible on any screen size */}
+          <div
+            className="w-[490px] h-[860px] shrink-0 bg-gradient-to-br from-[#f2f2f0] to-[#cdc9b8] rounded-[2rem] sm:rounded-none sm:rounded-tl-2xl sm:rounded-tr-2xl sm:rounded-bl-[2.5rem] sm:rounded-br-[7rem] pt-8 sm:pt-6 pb-8 px-4 sm:px-6 flex flex-col items-center shadow-none sm:shadow-[0_30px_60px_rgba(0,0,0,0.6),inset_-5px_-5px_20px_rgba(0,0,0,0.1),inset_5px_5px_15px_rgba(255,255,255,0.8)] border-0 sm:border-b-[8px] sm:border-r-[4px] border-[#c0bdae] ring-1 ring-black/5 relative origin-center z-10 texture-plastic"
+            style={{
+              transform: `scale(${consoleScale})`,
+              // Negative margins collapse the 490×860 layout box to the visual size.
+              // Without these, the element still takes 490×860 of flow space even when shrunk.
+              marginBlock: `${(consoleScale - 1) * 430}px`,
+              marginInline: `${(consoleScale - 1) * 245}px`,
+            }}
+          >
 
             {/* Top Grooves */}
             <div className="absolute top-0 left-4 right-4 h-6 border-b-2 border-t-2 border-[#c0bdae] opacity-50 shadow-inner"></div>
@@ -625,8 +652,8 @@ function App() {
           </div>
         </div>
 
-        {/* Right Column: Hardcore Telemetry Dashboard */}
-        <aside className={`${isMobileMenuOpen ? 'hidden' : 'hidden'} lg:flex flex-col w-full lg:w-[320px] shrink-0 gap-4 h-full`}>
+        {/* Right Column: Telemetry Dashboard — hidden on mobile, shown on desktop */}
+        <aside className="hidden lg:flex flex-col w-full lg:w-[320px] shrink-0 gap-4 h-full">
           <Card className="shrink-0 p-4 flex flex-col gap-3 !rounded-xl !border-[0] shadow-[0_10px_30px_rgba(0,0,0,0.3),inset_0_2px_5px_rgba(255,255,255,0.8)] bg-[#e0ddcf] relative overflow-hidden flex-1">
             {/* Background wireframe accent */}
             <div className="absolute -right-10 -top-10 text-[#c0bdae] opacity-30 pointer-events-none">
@@ -767,8 +794,278 @@ function App() {
           </Card>
         </aside>
 
-      </main >
-    </div >
+      </main>
+
+      {/* ═══════════════════════════════════════════════════════════════
+           MOBILE BOTTOM SHEET — All panels in a sleek tabbed drawer
+          ═══════════════════════════════════════════════════════════════ */}
+
+      {/* Bottom Tab Bar — icon-only, premium pill-highlight style */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around bg-[#e0ddcf] border-t-[3px] border-[var(--retro-neon)] shadow-[0_-4px_20px_rgba(0,0,0,0.5)] texture-plastic"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: '60px' }}
+      >
+        {([
+          { id: 'library', Icon: Library, label: 'Library' },
+          { id: 'saves', Icon: Save, label: 'Saves' },
+          { id: 'logs', Icon: ScrollText, label: 'Logs' },
+          { id: 'telemetry', Icon: Activity, label: 'Telemetry' },
+          { id: 'config', Icon: SlidersHorizontal, label: 'Config' },
+        ] as const).map(({ id, Icon, label }) => {
+          const isActive = isMobileMenuOpen && mobileTab === id;
+          return (
+            <button
+              key={id}
+              aria-label={label}
+              onClick={() => { setMobileTab(id); setIsMobileMenuOpen(id === mobileTab ? !isMobileMenuOpen : true); }}
+              className="flex-1 flex flex-col items-center justify-center h-full relative group active:scale-95 transition-transform"
+            >
+              {/* Glowing pill behind active icon */}
+              <span className={`absolute inset-x-1.5 top-1.5 bottom-1.5 rounded-lg transition-all duration-300 ${isActive ? 'bg-[var(--retro-neon)]/15 ring-1 ring-[var(--retro-neon)]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]' : 'bg-transparent'
+                }`} />
+              <Icon
+                size={22}
+                strokeWidth={isActive ? 2.5 : 1.8}
+                className={`relative z-10 transition-all duration-200 ${isActive
+                  ? 'text-[var(--retro-neon)] drop-shadow-[0_0_8px_var(--retro-neon)]'
+                  : 'text-[#8c897d] group-active:text-[#4a4b52]'
+                  }`}
+              />
+              {/* Active dot indicator */}
+              <span className={`mt-0.5 w-1.5 h-1.5 rounded-full transition-all duration-200 relative z-10 ${isActive ? 'bg-[var(--retro-neon)] shadow-[0_0_6px_var(--retro-neon)]' : 'bg-transparent'
+                }`} />
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Bottom Sheet Panel */}
+      <div
+        className={`lg:hidden fixed left-0 right-0 bottom-[52px] z-30 bg-[#e0ddcf] rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.6)] border-t-2 border-[#c0bdae] transition-transform duration-300 ease-in-out flex flex-col ${isMobileMenuOpen ? 'translate-y-0' : 'translate-y-full'
+          }`}
+        style={{ maxHeight: '70vh' }}
+      >
+        {/* Drag Handle */}
+        <div className="flex justify-center pt-2 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-[#aaa]"></div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-6 pt-2">
+
+          {/* ── LIBRARY TAB ── */}
+          {mobileTab === 'library' && (
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-black text-[#4a4b52] uppercase tracking-widest">Library</h3>
+                <button onClick={handleSelectVault} className="text-[10px] py-1.5 px-4 bg-[#a61022] hover:bg-[#800a16] text-white border-b-4 border-[#5a000a] active:border-b-0 active:translate-y-1 transition-all rounded-full shadow-md font-bold">
+                  {dirHandle ? 'CHG VAULT' : '+ ADD ROM'}
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-3 pb-2">
+                {isScanning ? (
+                  <div className="col-span-3 flex justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-[#c0bdae] border-t-[#4a4b52] rounded-full animate-spin"></div>
+                  </div>
+                ) : games.length === 0 ? (
+                  <div className="col-span-3 text-center py-8 opacity-50">
+                    <Gamepad2 size={28} className="mx-auto mb-2 text-[#555]" />
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#555]">Vault is Empty</p>
+                  </div>
+                ) : (
+                  filteredGames.map((game) => {
+                    const history = playHistory[game.id];
+                    return (
+                      <div
+                        key={game.id}
+                        onClick={async () => {
+                          try {
+                            const fileHandle = await dirHandle?.getFileHandle(game.fileName);
+                            const file = await fileHandle?.getFile();
+                            if (file) {
+                              addLog(`Booting ROM: ${game.fileName}`);
+                              setActiveGame({ metadata: game, file });
+                              setEmulatorInstance(null);
+                              setIsMobileMenuOpen(false);
+                            }
+                          } catch (err) { console.error(err); }
+                        }}
+                        className={`relative w-full aspect-[4/5] bg-[#b5b5b5] rounded-xl border-2 border-[#8c8c8c] border-b-[5px] shadow-lg cursor-pointer flex flex-col overflow-hidden texture-plastic ${activeGame?.metadata.id === game.id ? 'border-[#a61022] ring-2 ring-[#a61022]' : ''
+                          }`}
+                      >
+                        <div className="absolute top-1 right-1 bg-black/80 px-1 py-0.5 rounded z-30 flex items-center gap-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${history?.timePlayedSeconds ? 'bg-[#ffb000]' : 'bg-[#39ff14] animate-pulse'}`}></div>
+                          <span className="text-[7px] font-black tracking-widest text-[#e0ddcf] uppercase">{history?.timePlayedSeconds ? `${Math.floor(history.timePlayedSeconds / 60)}m` : 'NEW'}</span>
+                        </div>
+                        {game.boxArtUrl ? (
+                          <img src={game.boxArtUrl} alt={game.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        ) : (
+                          <div className="flex-1 flex items-center justify-center p-2">
+                            <span className="text-[9px] font-black text-[#333] text-center uppercase leading-tight">{game.title}</span>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-white/90 px-1 py-0.5 border-t border-[#a61022] z-20">
+                          <span className="text-[7px] font-black uppercase tracking-widest text-black truncate block">{game.platform} GAME PAK</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── SAVES TAB ── */}
+          {mobileTab === 'saves' && (
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-black text-[#4a4b52] uppercase tracking-widest">Save States</h3>
+                <button
+                  onClick={handleCreateSave}
+                  disabled={!emulatorInstance || !activeGame}
+                  className="text-[10px] py-1.5 px-4 bg-[#1a1a1a] text-[#39ff14] border border-[#333] rounded font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  + SAVE
+                </button>
+              </div>
+              {saveStates.length === 0 ? (
+                <div className="text-center py-8 opacity-50">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#555]">No saves found</p>
+                  <p className="text-[10px] text-[#555] mt-1">Ensure a game is running first.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {saveStates.map((save) => (
+                    <div key={save.id} className="flex justify-between items-center bg-[#f2f2f0] p-3 rounded-lg border border-[#c0bdae] shadow-sm">
+                      <div>
+                        <p className="text-[11px] font-bold text-[#29225c]">{new Date(save.timestamp).toLocaleDateString()} {new Date(save.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-[9px] text-[#888] uppercase font-bold mt-0.5">ID: {save.id.slice(0, 10)}...</p>
+                      </div>
+                      <button onClick={() => handleLoadState(save.id)} className="text-[10px] bg-[#1a1a1a] px-3 py-1.5 rounded font-black text-[var(--retro-neon)] border-b-2 border-black active:border-b-0">LOAD</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── LOGS TAB ── */}
+          {mobileTab === 'logs' && (
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-black text-[#4a4b52] uppercase tracking-widest flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#39ff14] shadow-[0_0_5px_#39ff14] animate-pulse"></div>
+                System Logs
+              </h3>
+              <div className="bg-[#1a1a1a] rounded-lg p-3 border-2 border-[#333] font-mono text-[11px] text-[#00ff00] leading-relaxed space-y-1">
+                {systemLogs.length === 0 ? (
+                  <span className="opacity-50 italic">Waiting for events...</span>
+                ) : (
+                  systemLogs.map((log, i) => (
+                    <div key={i} className="break-words">
+                      <span className="opacity-50">[{log.time.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span> {log.message}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── TELEMETRY TAB ── */}
+          {mobileTab === 'telemetry' && (
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-black text-[#4a4b52] uppercase tracking-widest flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#39ff14] shadow-[0_0_8px_#39ff14] animate-pulse"></div>
+                Telemetry
+              </h3>
+              <div className="bg-[#1a1a1a] rounded-lg p-3 border-2 border-[#333] font-mono text-xs text-[#00ff00]">
+                {/* FPS Graph */}
+                <div className="flex items-end h-16 border-b border-[#333] pb-1 gap-[2px] mb-3">
+                  {telemetry.history.map((val, i) => (
+                    <div key={i} className={`flex-1 rounded-t transition-all duration-300 ${val > 45 ? 'bg-[var(--retro-neon)]' : val > 0 ? 'bg-[#ffb000]' : 'bg-[#222]'}`}
+                      style={{ height: `${Math.max(5, Math.min(100, (val / 60) * 100))}%` }}
+                    />
+                  ))}
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between"><span className="text-[#888] font-bold">EMULATION FPS:</span><span className={telemetry.fps > 45 ? 'text-[var(--retro-neon)] font-bold' : 'text-[#ffb000] font-bold'}>{activeGame ? telemetry.fps : '--'}</span></div>
+                  <div className="flex justify-between"><span className="text-[#888] font-bold">SYS RAM ALLOC:</span><span className="text-[var(--retro-neon)]"> {activeGame ? `${telemetry.ram} MB` : '--'}</span></div>
+                  <div className="flex justify-between"><span className="text-[#888] font-bold">VRAM ALLOC:</span><span className="text-[var(--retro-neon)]"> {activeGame ? `${telemetry.vram} MB` : '--'}</span></div>
+                  <div className="flex justify-between"><span className="text-[#888] font-bold">TARGET ARCH:</span><span className="text-[var(--retro-neon)]">{activeGame ? (activeGame.metadata.platform === 'GBA' ? 'ARM7TDMI' : activeGame.metadata.platform === 'SNES' ? 'WDC 65C816' : activeGame.metadata.platform === 'NES' ? 'Ricoh 2A03' : 'GENERIC') : 'IDLE'}</span></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── CONFIG TAB ── */}
+          {mobileTab === 'config' && (
+            <div className="flex flex-col gap-4">
+              <h3 className="text-sm font-black text-[#4a4b52] uppercase tracking-widest flex items-center gap-2">
+                <Settings2 size={16} /> Hardware Config
+              </h3>
+
+              {/* Volume */}
+              <label className="flex flex-col gap-2">
+                <div className="flex justify-between text-xs font-black uppercase text-[#4a4b52] tracking-wider">
+                  <span>AUDIO.VOL</span>
+                  <span className="text-[var(--retro-neon)] bg-[#1a1a1a] px-2 py-0.5 rounded font-mono">{Math.round((userSettings?.volume || 1) * 100)}%</span>
+                </div>
+                <div className="px-3 py-2 bg-[#b5b2a3] rounded-lg shadow-inner border border-[#8c897d]">
+                  <input type="range" min="0" max="1" step="0.05"
+                    value={userSettings?.volume || 1}
+                    onChange={(e) => updateSettings({ volume: parseFloat(e.target.value) })}
+                    className="slider-mechanical w-full block"
+                  />
+                </div>
+              </label>
+
+              {/* Theme */}
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">LCD.THEME</span>
+                <div className="relative">
+                  <select
+                    value={userSettings?.colorTheme || 'arcade-neon'}
+                    onChange={(e) => updateSettings({ colorTheme: e.target.value as UserSettings['colorTheme'] })}
+                    className="bg-[#1a1a1a] border-2 border-[#444] text-[var(--retro-neon)] p-2 rounded-md text-xs uppercase font-bold w-full appearance-none pr-8 cursor-pointer"
+                  >
+                    <option value="arcade-neon">Arcade Neon</option>
+                    <option value="gameboy-dmg">Gameboy DMG</option>
+                    <option value="virtual-boy">Virtual Boy</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#555]">▼</div>
+                </div>
+              </div>
+
+              {/* Key Bindings */}
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">GAME.CTRL</span>
+                <button onClick={() => setIsKeyBindingModalOpen(true)}
+                  className="w-full bg-[#1a1a1a] text-[var(--retro-neon)] border-2 border-[#444] p-2.5 rounded-md text-xs uppercase font-bold tracking-widest"
+                >Configure Mappings</button>
+              </div>
+
+              {/* CRT Toggle */}
+              <div className="flex items-center justify-between bg-[#b5b2a3] p-3 rounded-md border border-[#8c897d]">
+                <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">DISPLAY.CRT</span>
+                <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
+                  <input type="checkbox" className="sr-only peer" checked={userSettings?.crtFilterEnabled || false} onChange={(e) => updateSettings({ crtFilterEnabled: e.target.checked })} />
+                  <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]"></div>
+                </label>
+              </div>
+
+              {/* Scanlines Toggle */}
+              <div className="flex items-center justify-between bg-[#b5b2a3] p-3 rounded-md border border-[#8c897d]">
+                <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">DISPLAY.SCL</span>
+                <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
+                  <input type="checkbox" className="sr-only peer" checked={userSettings?.scanlinesEnabled || false} onChange={(e) => updateSettings({ scanlinesEnabled: e.target.checked })} />
+                  <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]"></div>
+                </label>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+    </div>
   );
 }
 
