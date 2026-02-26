@@ -1,48 +1,188 @@
 # Database & Storage Architecture
-## RetroVault
+## RetroVault — v1.0.0
+
+> This document describes the **actual storage implementation** as built, using `localforage` (IndexedDB-backed) for all persistence.
 
 ---
 
-## 1. The Dual-Layer Approach
-To achieve both high-performance emulation (60 FPS without I/O stutter) and rich metadata querying in the browser, RetroVault implements a **dual-layer storage strategy**.
+## 1. Storage Technology Choice
 
-### Layer 1: Origin Private File System (OPFS)
-*   **Role**: High-speed, heavy binary blob storage.
-*   **Contents**: The actual `.gba`/`.gbc` ROM binaries, `.sav` battery dumps, and Save State dumps space.
-*   **Why OPFS?** OPFS is highly optimized for fast read/write access directly from Web Workers. Standard IndexedDB is often significantly too slow for parsing 32MB+ ROMs synchronously during CPU emulation. OPFS functions like a real, isolated native hard drive inside the browser Sandbox.
+### Why `localforage` (not raw OPFS)?
 
-### Layer 2: IndexedDB (via Dexie.js)
-*   **Role**: Relational metadata and fast search index.
-*   **Contents**: Game titles, accumulated playtimes, SHA-1 hashes (Primary Keys), user configurations, and base64/blob Box Art images.
-*   **Why IndexedDB?** It allows complex SQL-like filtering, sorting by "Recently Played", and responsive text lookup of the library without needing to touch or load the monstrous binary files stored in OPFS.
+The original architecture spec proposed using the **Origin Private File System (OPFS)** for ROM binary storage. In the delivered implementation, ROMs are **never copied into browser storage**. Instead, the app uses the browser's **File System Access API** to hold a persistent `FileSystemDirectoryHandle` reference pointing at the user's local ROM folder. ROM files are read on demand directly from their native location.
 
----
+This decision has several advantages:
+- **Zero ROM storage overhead** — a 32MB GBA game takes up 0 bytes of browser quota
+- **No ingestion step** — click a folder, library appears instantly
+- **Native-speed file reads** — the browser reads straight from the OS filesystem
 
-## 2. The Data Lifecycle
+`localforage` is then used exclusively for the **lightweight, structured data** that needs to persist:
+- Save states (binary blobs)
+- User settings
+- Play history (playtime, timestamps)
+- Favorited game IDs (reserved for future use)
 
-### A. Ingestion (Adding a Game)
-1.  **Action**: User drops `PokemonEmerald.gba` into the app window.
-2.  **Hashing**: The UI thread passes the file to a Web Worker which generates a quick `SHA-1` hash (e.g., `a1b2c3...`). This hash acts as the absolute unique identifier.
-3.  **Binary Write**: The file is streamed and written to OPFS at path: `/roms/a1b2c3.gba`.
-4.  **Index Write**: Dexie.js creates a metadata record in the `games` table: 
-    `{ hash: 'a1b2c3...', title: 'Pokemon Emerald', system: 'GBA', fileRef: '/roms/a1b2c3.gba' }`.
-5.  **Completion**: The UI instantly updates the Vault view to show the new game.
-
-### B. Emulation (Playing a Game)
-1.  **Action**: User clicks the newly added game inside the Vault.
-2.  **Pointer Pass**: The UI queries IndexedDB for the game's hash, finds the `fileRef`, and passes that string path to the **Emulation Web Worker**.
-3.  **Memory Load**: The Emulation Worker utilizes OPFS SyncAccessHandles to read the binary `/roms/a1b2c3.gba` directly into the Libretro WASM memory heap at lightning speed.
-4.  **Save Injection**: The Worker checks OPFS for `/saves/a1b2c3.sav`. If the file is found natively, it is written into the active WASM SRAM allocation space, effectively loading the user's previous save battery.
-
-### C. Persistence (Saving a Game)
-1.  **Trigger**: Every 60 seconds of active playtime, OR immediately whenever the user forcefully accesses the "Pause Overlay".
-2.  **Extraction**: The Emulation Worker pauses the CPU loop and extracts the current SRAM memory buffer block directly from WASM.
-3.  **File Dump**: The Worker writes the buffer, directly overwriting the file at OPFS `/saves/a1b2c3.sav`.
-4.  **Stats Update**: Separately, the UI thread calculates elapsed session time and updates the IndexedDB `stats` table (incrementing `playTimeSeconds` and setting the current UNIX timestamp on `lastPlayed`).
+`localforage` uses **IndexedDB** as its backend when available (which it is in all modern browsers), falling back to WebSQL or localStorage automatically. All operations are asynchronous and Promise-based.
 
 ---
 
-## 3. Storage Quotas & Limits
-Browsers limit how much space domains can consume. 
-*   **StorageManager API**: RetroVault proactively polls `navigator.storage.estimate()` on boot.
-*   **Alerting**: If usage exceeds 80% of the browser's allocated quota, a non-intrusive banner appears in the Vault view suggesting the user export/backup their `.sav` files to their desktop and delete unused heavy ROMs.
+## 2. Store Instances
+
+Four completely isolated `localforage` instances are created in `packages/db/src/index.ts`. Each maps to a separate IndexedDB object store within the `RetroVault` database:
+
+| Instance Variable | Store Name | Database Name | Purpose |
+|---|---|---|---|
+| `favoritesStore` | `favorites` | `RetroVault` | Favorited game ID list |
+| `saveStateStore` | `save_states` | `RetroVault` | Save state blobs + metadata |
+| `settingsStore` | `settings` | `RetroVault` | User preferences |
+| `playHistoryStore` | `play_history` | `RetroVault` | Per-game playtime records |
+
+---
+
+## 3. Data Models
+
+### `SaveStateMetadata`
+```ts
+interface SaveStateMetadata {
+    id: string;       // Composite key: "${gameId}_${timestamp}"
+    gameId: string;   // e.g., "PokemonFireRed.gba-16777216"
+    gameTitle: string;
+    timestamp: number; // Unix ms timestamp of when saved
+}
+```
+
+### `PlayHistory`
+```ts
+interface PlayHistory {
+    gameId: string;
+    lastPlayed: number;       // Unix ms timestamp
+    timePlayedSeconds: number; // Cumulative seconds across all sessions
+}
+```
+
+### `UserSettings`
+```ts
+interface UserSettings {
+    volume: number;              // 0.0 to 1.0
+    crtFilterEnabled: boolean;
+    scanlinesEnabled: boolean;
+    colorTheme: 'arcade-neon' | 'gameboy-dmg' | 'virtual-boy';
+    keyBindings: KeyBindings;
+}
+
+interface KeyBindings {
+    up: string;     // Default: 'up'
+    down: string;   // Default: 'down'
+    left: string;   // Default: 'left'
+    right: string;  // Default: 'right'
+    a: string;      // Default: 'x'
+    b: string;      // Default: 'z'
+    start: string;  // Default: 'enter'
+    select: string; // Default: 'shift'
+}
+```
+
+---
+
+## 4. Storage API Reference
+
+### `SaveStateStorage`
+
+| Method | Description |
+|---|---|
+| `saveState(gameId, gameTitle, blob)` | Writes a Blob under key `blob_${saveId}`, appends metadata to `meta_${gameId}` list |
+| `loadState(saveId)` | Returns `Blob` for `blob_${saveId}` |
+| `getStatesForGame(gameId)` | Returns full `SaveStateMetadata[]` for `meta_${gameId}` |
+| `saveAutoState(gameId, blob)` | Overwrites `auto_save_blob_${gameId}` — always one slot |
+| `loadAutoState(gameId)` | Returns auto-save blob if exists, else null |
+
+**Key naming conventions in `saveStateStore`:**
+```
+blob_${gameId}_${timestamp}   → The actual binary data (Blob)
+meta_${gameId}                → SaveStateMetadata[] index for this game
+auto_save_blob_${gameId}      → Always-overwritten auto-save slot
+```
+
+### `SettingsStorage`
+
+| Method | Description |
+|---|---|
+| `getSettings()` | Returns stored `UserSettings` or the hardcoded `DEFAULT_SETTINGS` |
+| `updateSettings(partial)` | Merges with current, writes back full object |
+
+Key: `user_settings`
+
+### `PlayHistoryStorage`
+
+| Method | Description |
+|---|---|
+| `getPlayHistory(gameId)` | Returns `PlayHistory` for one game |
+| `updatePlayHistory(gameId, increment)` | Creates entry if missing, adds `increment` seconds, updates timestamp |
+| `getAllPlayHistory()` | Iterates all keys, builds `Record<string, PlayHistory>` map |
+
+Key per game: the `gameId` string itself (e.g., `PokemonFireRed.gba-16777216`).
+
+### `FavoritesStorage`
+
+| Method | Description |
+|---|---|
+| `getFavorites()` | Returns string array of favorited IDs |
+| `toggleFavorite(gameId)` | Adds or removes from array, returns new boolean state |
+| `isFavorite(gameId)` | Returns boolean |
+
+Key: `list` (a single array of all favorited IDs).
+
+---
+
+## 5. Auto-Save Lifecycle
+
+The auto-save mechanism runs on a 30-second interval inside the `EmulatorConsole` component:
+
+```
+[Emulator Running]
+       │
+       ▼
+    setInterval (30s)
+       │
+       ├── nostalgist.saveState()           → returns { state: Blob }
+       └── SaveStateStorage.saveAutoState() → writes to localforage
+
+[Game Reopened]
+       │
+       ▼
+    Nostalgist.launch() completes
+       │
+       ├── SaveStateStorage.loadAutoState(gameId)
+       └── nostalgist.loadState(blob)       → restores where user left off
+```
+
+Play time tracking runs on a separate 10-second interval:
+
+```
+setInterval (10s)
+    └── PlayHistoryStorage.updatePlayHistory(gameId, 10)
+```
+
+---
+
+## 6. GameMetadata ID Strategy
+
+Games do **not** use SHA-1 hashing (as originally planned). The unique ID is generated at scan time as:
+
+```ts
+id = `${fileName}-${file.size}`
+// Example: "PokemonFireRed.gba-16777216"
+```
+
+This provides a stable, deterministic ID without requiring any async hashing. It is used as the key for all `playHistoryStore` and `saveStateStore` records, ensuring save states correctly map to their game even across sessions.
+
+---
+
+## 7. Storage Quota Considerations
+
+localforage (IndexedDB) is subject to browser storage quotas:
+- Most modern browsers give origins **up to 10% of total disk** (often gigabytes)
+- Save state blobs are typically small (< 5MB per state)
+- The biggest storage concern is accumulation of manual save states over long periods of play
+
+Future improvement: display a storage usage estimate using `navigator.storage.estimate()` and warn if it approaches limits.

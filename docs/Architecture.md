@@ -1,86 +1,242 @@
 # System Architecture
-## RetroVault
+## RetroVault — v1.0.0
 
-**Version:** 1.0.0
-**Status:** Main Architecture Design
+**Status:** Implemented & Active
+
+> This document describes the architecture **as actually built**, reflecting both the original design intent and the implementation decisions made during development.
 
 ---
 
-## 1. Architectural Overview
-To ensure maximum graphical and processing performance (achieving strict 60 FPS output free of audio crackling or stutter) while retaining a highly interactive UI, RetroVault is built upon a **Decoupled Architecture**. It structurally separates heavy CPU emulation logic from standard UI thread events.
+## 1. High-Level Overview
+
+RetroVault is a **local-first, single-page web application** that embeds full retro game emulation inside a highly detailed, skeuomorphic Game Boy console UI. It uses no backend server — all processing, storage, and emulation happens entirely inside the user's browser.
 
 ```mermaid
 graph TD
-    UI[Presentation Layer<br/>React/Svelte/CSS] --> Worker[Emulation Core<br/>Libretro WASM in Web Worker]
-    Input[Input Layer<br/>Gamepad/Touch/Keys] --> Worker
-    Worker --> Output[Output Layer<br/>Canvas/WebAudio]
-    Worker <--> Storage[Storage Layer<br/>OPFS/IndexedDB]
-    UI <--> Storage
-    UI <--> Network[Network Layer<br/>Optional Public APIs]
+    User([👤 User])
+
+    subgraph Browser
+        UI[React UI Layer<br/>App.tsx]
+        EC[EmulatorConsole.tsx<br/>Nostalgist.js Wrapper]
+        Core[@retrovault/core<br/>ROM Scanner + Metadata]
+        DB[@retrovault/db<br/>localforage Storage]
+        Canvas[HTML5 Canvas<br/>Emulation Output]
+    end
+
+    LibretroCloud[☁️ libretro-thumbnails<br/>GitHub CDN Box Art]
+    ROMFolder[📁 Local ROM Folder<br/>File System Access API]
+
+    User --> UI
+    UI --> Core
+    UI --> DB
+    UI --> EC
+    EC --> Canvas
+    Core --> ROMFolder
+    UI --> LibretroCloud
 ```
+
+---
 
 ## 2. Architectural Layers
 
-### 2.1 Presentation Layer (UI Thread)
-* **Technologies**: TypeScript, React (or Svelte, for a diminished application bundle footprint), CSS Grid, Tailwind CSS.
-* **Role**: Orchestrates rendering of the interactive, skeuomorphic "virtual shell". It dynamically manages DOM states, visual animations, context menus, and builds the visual Library Grid. It acts strictly as a "dumb" viewer driven by asynchronous system messages.
+### 2.1 Presentation Layer — `apps/web/src/App.tsx`
 
-### 2.2 Input / Hardware Layer
-* **Technologies**: HTML5 Web Gamepad API, JS Touch Events, DOM Keyboard Listeners, Web Haptics API (for rumble support).
-* **Role**: Constantly polls and intercepts physical peripherals or virtual on-screen d-pads. Captures bitmasks of active inputs and streams them directly over a SharedArrayBuffer (or high-frequency `postMessage` loops) to the Emulation worker, targeting sub-10ms response latency.
+The root React component that:
 
-### 2.3 Emulation Core (Web Worker)
-* **Technologies**: Libretro WASM cores (e.g., `mGBA`, `Gambatte`) sandboxed entirely within isolated Web Workers.
-* **Role**: Acts as the system powerhouse. Completely quarantining heavy emulation cycles unbinds it from freezing DOM rendering operations. It receives the controller buffers, executes millions of emulated CPU routines, and constructs raw audiovisual streams passed back to output buses.
+- **Manages all global state** using React `useState` hooks:
+  - `games` — the scanned ROM library (`GameMetadata[]`)
+  - `activeGame` — the currently loaded game (`{ metadata, file }`)
+  - `emulatorInstance` — the live `Nostalgist` object reference
+  - `userSettings` — volume, themes, key bindings
+  - `saveStates`, `playHistory`, `systemLogs`
+- **Orchestrates the three-column layout**: Library (left), Game Boy shell (center), Telemetry + Config (right)
+- **Drives the emulator lifecycle**: sets `activeGame` → passes `romFile` to `EmulatorConsole` → receives back the `Nostalgist` instance via `onReady` callback
+- **Runs the real-time telemetry loop** using `requestAnimationFrame` when a game is active, measuring FPS and JS heap allocation
+- **Handles keyboard bindings** using a global `keydown` listener that only fires during active key-bind-capture mode
 
-### 2.4 Storage Layer
-* **Technologies**: The Origin Private File System (`OPFS`) and IndexedDB (managed via `Dexie.js`).
-* **Role**: Crucial for high-speed file storage operations exceeding classical standard limits. OPFS acts as the lightning-fast virtual hard drive handling bulk binary data (large `.gba` multi-megabyte chunks and sprawling save states). IndexedDB serves purely as an agile relational index supporting high-performance searching across thousands of stored instances.
+### 2.2 Emulation Layer — `apps/web/src/components/GameBoy/EmulatorConsole.tsx`
 
-### 2.5 Output Layer
-* **Technologies**: HTML5 `<canvas>` (configured via WebGL / WebGPU contexts), CSS `image-rendering: pixelated;`, Web Audio API worklets.
-* **Role**: Translates raw data into visible or audible assets. Enforces strict pixel-perfect, aliased rendering matrices minimizing visual blur while efficiently synchronizing 32kHz (or 44.1kHz) audio data pools to ensure crackle-free audio.
+The isolated wrapper component responsible for all Nostalgist.js lifecycle events:
 
-## 3. Emulation Flow & Lifecycle
+- **Boots one ROM** when `romFile` prop changes — uses a `useEffect` with `[romFile, resolveCore, gameId, gameTitle, platform]` as dependencies (deliberately **excluding** `volume`, `onLog`, `keyBindings` to prevent infinite restart loops — these are accessed via stable `useRef` snapshots instead)
+- **Resolves the correct Libretro core** via its internal `CORE_MAP`:
+  ```ts
+  GBA  → mgba
+  SNES → snes9x
+  NES  → fceumm
+  GB   → gambatte
+  GBC  → gambatte
+  MD   → genesis_plus_gx
+  ```
+- **Calls `Nostalgist.launch()`** with the ROM file, resolved core, a reference to the `<canvas>` element, retro-arch config (audio volume in dB, key bindings, auto save/load flags), and the current container pixel size
+- **Attempts to restore an auto-save state** from `localforage` after boot (via `SaveStateStorage.loadAutoState`)
+- **Auto-saves every 30 seconds** in the background using a `setInterval`
+- **Tracks cumulative play time** via `PlayHistoryStorage.updatePlayHistory` every 10 seconds
+- **Handles resize** using a `ResizeObserver` that calls `nostalgist.resize()` when the container bounds change
+- **Renders a BSOD-style error overlay** if Nostalgist.launch throws (blue screen, error message, Eject button)
+- **Shows a loading spinner** while the WASM core initializes
+
+### 2.3 ROM Scanner Layer — `packages/core/src/files.ts`
+
+Exposes three pure utility functions with no React or storage dependency:
+
+#### `scanDirectory(dirHandle)`
+Traverses the `FileSystemDirectoryHandle` provided by the browser's `showDirectoryPicker()` dialog. For each file matching `.gba`, `.smc`, `.sfc`, `.nes`, `.zip`, it:
+1. Calls `extractMetadataFromName(fileName)` to get clean title and platform
+2. Generates a stable `id` as `${fileName}-${file.size}`
+3. Calls `getBoxArtUrl(title, platform)` to build the CDN box art URL
+4. Pushes a `GameMetadata` object to the list
+
+Returns all games sorted alphabetically by title.
+
+#### `extractMetadataFromName(fileName)`
+Uses RegExp to:
+- Strip the file extension
+- Remove leading numbering patterns (e.g., `1636 - `)
+- Strip parenthetical region/group codes (e.g., `(U)(Squirrels)`, `(USA, Europe)`)
+- Detect platform from extension
+
+#### `getBoxArtUrl(title, platform)`
+Constructs a direct URL to the official `libretro-thumbnails` GitHub repository, mapping platform codes to folder names and URL-encoding the title with underscores replacing spaces.
+
+### 2.4 Storage Layer — `packages/db/src/index.ts`
+
+Built on top of **localforage**, which uses IndexedDB under the hood with a clean key-value API. Four isolated store instances are created:
+
+| Store Name | `localforage` Instance | Contents |
+|---|---|---|
+| `favorites` | `favoritesStore` | Array of favorited game IDs |
+| `save_states` | `saveStateStore` | Save state blobs + metadata index |
+| `settings` | `settingsStore` | `UserSettings` object |
+| `play_history` | `playHistoryStore` | `PlayHistory` records per game |
+
+Four typed service objects provide the public API:
+
+**`SaveStateStorage`**
+- `saveState(gameId, gameTitle, blob)` — writes binary blob + metadata entry
+- `loadState(saveId)` — retrieves blob by exact save ID
+- `getStatesForGame(gameId)` — retrieves all save metadata for a game
+- `saveAutoState(gameId, blob)` — overwrites auto-save slot
+- `loadAutoState(gameId)` — retrieves auto-save slot
+
+**`SettingsStorage`**
+- `getSettings()` — returns stored `UserSettings` or defaults
+- `updateSettings(partial)` — merges changes and persists
+
+**`PlayHistoryStorage`**
+- `updatePlayHistory(gameId, increment)` — increments seconds and updates timestamp
+- `getAllPlayHistory()` — returns full map for all games (used to show playtime badges on library cards)
+
+**`FavoritesStorage`**
+- `getFavorites()` / `toggleFavorite(gameId)` / `isFavorite(gameId)` — manages a stored ID list (UI is currently commented out, present for future use)
+
+### 2.5 Shared UI Components — `packages/ui`
+
+Provides base components (`Button`, `Card`) shared across the application. The `Card` component provides the consistent light-beige background, border shadows, and rounded corners used for the Library, Logs, Save States, and Config panels.
+
+---
+
+## 3. Data Flow: From Click to Game
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant UI as UI Thread
-    participant W as Emulation Worker
-    participant S as Storage (OPFS/IDB)
-    
-    U->>UI: Drag & Drop ROM File
-    UI->>S: Hash File (SHA-1) and Store ROM blob (OPFS)
-    S-->>UI: Return Local fileRef
-    UI->>W: Initialize Emulation Worker + send (fileRef)
-    W->>S: Read binary buffer into WASM Heap
-    W-->>UI: Broadcast "Ready" State
-    U->>UI: Press Play / Start Action
-    loop Every Frame (~16.6ms)
-        UI->>W: Push Input Bitmask Buffer
-        W->>W: Emulate 1 Frame
-        W-->>UI: Transfer ImageData (Video) & Float32Array (Audio)
+    participant App as App.tsx
+    participant Core as @retrovault/core
+    participant FSA as File System Access API
+    participant EC as EmulatorConsole.tsx
+    participant DB as @retrovault/db
+    participant N as Nostalgist.js (WASM)
+
+    U->>App: Click "+ ADD ROM"
+    App->>FSA: showDirectoryPicker()
+    FSA-->>App: FileSystemDirectoryHandle
+    App->>Core: scanDirectory(handle)
+    Core->>FSA: Iterate files, filter ROMs
+    Core-->>App: GameMetadata[]
+    App-->>U: Render cartridge library grid
+
+    U->>App: Click game cartridge
+    App->>FSA: getFileHandle(fileName).getFile()
+    FSA-->>App: File object
+    App->>App: setActiveGame({ metadata, file })
+    App->>EC: <EmulatorConsole romFile={file} ... />
+
+    EC->>N: Nostalgist.launch({ rom, core, element })
+    N->>N: Fetch + compile WASM core
+    N-->>EC: Nostalgist instance (running)
+    EC->>DB: loadAutoState(gameId)
+    DB-->>EC: Blob | null
+    EC->>N: loadState(blob) [if found]
+    EC-->>App: onReady(nostalgistInstance)
+
+    loop Every 30s
+        EC->>N: saveState()
+        EC->>DB: saveAutoState(gameId, blob)
     end
-    U->>UI: Pause emulation
-    UI->>W: Request state suspension
-    W->>S: Flush dirty SRAM to OPFS
 ```
 
-## 4. Open-Source Monorepo Structure
-To ensure project modularity and seamless future maintenance, a Turborepo-driven monorepo pattern layout is defined.
+---
 
-```text
+## 4. Key Architectural Decisions
+
+### Why Nostalgist.js instead of raw Web Workers?
+Nostalgist.js encapsulates the entire Libretro WASM loading, threading, and canvas-binding complexity. It provides a clean async API for launching, saving, loading state, resizing, key press simulation, and exiting. This allowed us to focus engineering effort on UI fidelity rather than low-level WASM plumbing.
+
+### Why `useRef` for volume/logging/keybindings in EmulatorConsole?
+React's `useEffect` re-runs whenever its dependency array changes. If `onLog` (a new function reference on every render), `volume`, or `keyBindings` were in the deps array, any parent re-render (including telemetry FPS counter ticks) would tear down and restart the entire emulator. Instead, these values are written into mutable `useRef` containers that are always current but never trigger teardown.
+
+### Why localforage instead of raw IndexedDB or OPFS?
+The original architecture spec called for OPFS for ROM binary storage. In the delivered implementation, ROMs are accessed directly via the `FileSystemDirectoryHandle` (not copied into the browser). localforage provides a much simpler API for the metadata and save-state use cases without the need for service worker coordination or OPFS synchronous access handles in shared workers.
+
+### Why the File System Access API instead of drag & drop uploads?
+The FSA API gives persistent access to a user-selected directory, which means the app can re-read any ROM file on demand without the user uploading it. This allows a library of gigabytes of ROMs to be "indexed" with essentially zero storage overhead inside the browser.
+
+---
+
+## 5. Real Monorepo Structure
+
+```
 retrovault/
 ├── apps/
-│   └── web/                   # Main PWA application utilizing packages
+│   └── web/                        # Vite + React PWA
+│       ├── src/
+│       │   ├── App.tsx              # Root component (900+ lines)
+│       │   ├── index.css            # Themes, scanlines, CRT, textures, sliders
+│       │   └── components/
+│       │       └── GameBoy/
+│       │           └── EmulatorConsole.tsx
+│       └── package.json
+│
 ├── packages/
-│   ├── core/                  # Web Worker/WASM bridge orchestration logic
-│   ├── ui/                    # Sharable React/Svelte presentational components
-│   ├── config/                # Shared ESLint/TS configs
-│   └── db/                    # Shared Dexie Database models + Schemas
+│   ├── core/
+│   │   └── src/
+│   │       ├── index.ts             # Re-exports
+│   │       └── files.ts             # scanDirectory, extractMetadataFromName, getBoxArtUrl
+│   ├── db/
+│   │   └── src/
+│   │       └── index.ts             # All localforage storage services
+│   └── ui/
+│       └── src/                     # Button, Card components
+│
+├── docs/                            # Full documentation suite
+├── Games/                           # Local ROM directory (gitignored)
+├── turbo.json
+├── pnpm-workspace.yaml
 └── package.json
 ```
 
-## 5. Plugin & Modularity System
-Aiming for future-proofing, the `packages/core` logic exposes deeply typed TypeScript interfaces (`IEmulationCore`). Members of the developer community can thus transparently write localized wrappers bridging, for instance, SNES (`Snes9x`), Nintendo 64 (`Mupen64`), or PS1 (`Beetle`) bindings without needing massive overhauls regarding how the primary `apps/web` application executes visual flow. 
+---
+
+## 6. CSS Architecture — Themes & Visual Effects
+
+All global visual effects are defined in `apps/web/src/index.css` and applied conditionally via class names on the root `<div>`:
+
+| Effect | Class | Description |
+|---|---|---|
+| CRT Filter | `crt-filter` | Rounded vignette shadow overlay simulating curved CRT glass |
+| Scanlines | `scanlines` | Repeating linear gradient overlaid at 4px pitch (20% opacity) |
+| Plastic Texture | `texture-plastic` | subtle noise pattern on the console shell surface |
+| Custom Scrollbar | `custom-scrollbar` | Styled narrow scrollbars for panel overflows |
+
+Color themes (`arcade-neon`, `gameboy-dmg`, `virtual-boy`) override CSS custom properties (`--retro-neon`, `--retro-neon-dim`) used throughout for accent colors on buttons, log text, and telemetry bars.

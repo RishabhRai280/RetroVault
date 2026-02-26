@@ -1,55 +1,110 @@
-# RetroVault
+# RetroVault Documentation
+
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue)
-![Status](https://img.shields.io/badge/Status-Proposed_Architecture-brightgreen)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-purple)
 
-## Welcome to RetroVault
-**RetroVault** is a local-first, Progressive Web App (PWA) emulation platform designed to evoke nostalgia through a high-fidelity "Virtual Handheld" interface. 
+**RetroVault** is a local-first, browser-based retro game emulation platform. It embeds multiple Libretro WebAssembly cores inside a high-fidelity, skeuomorphic Game Boy DMG-01 console interface built entirely with React and Tailwind CSS.
 
-It allows users to upload, manage, and play retro game backups directly in their browser without relying on external servers, providing an authentic, private, and frictionless gaming experience.
+No backend. No accounts. No uploads. Everything runs in your browser.
 
 ---
 
 ## 📚 Documentation Index
 
-To understand the full scope of the RetroVault project, please refer to the following industry-standard documentation in this directory:
-
-### 1. [Product Requirements Document (PRD)](./PRD.md)
-Contains the executive vision, core target audience, key value propositions, phased feature roadmap, and strategy for future opt-in scaling.
-- **Audience:** Product Managers, Stakeholders, Core Contributors
-
-### 2. [Software Requirements Specification (SRS)](./SRS.md)
-Details strict system rules, Functional (FR) and Non-Functional Requirements (NFR). Explains the exact UI/UX states necessary for development alongside detailed database (IndexedDB/OPFS) object schemas.
-- **Audience:** Developers, QA Engineers, Designers
-
-### 3. [System Architecture](./Architecture.md)
-Outlines the decoupled computing logic separating the UI from Emulation. Covers layers (Presentation, Input, Emulation Core, Storage, Output), application lifecycle flow, and the open-source Monorepo directory mapping. Features intricate `mermaid.js` component and sequence diagrams.
-- **Audience:** Software Architects, Core Engine Contributors
-
-### 4. [Database & Storage Architecture](./Database_Architecture.md)
-A deep dive into the dual-layer storage constraints utilizing the Origin Private File System (OPFS) for blob ingestion alongside IndexedDB for relational fast lookup. Explains data lifecycle mapping across the ingestion, emulation, and save-persistence states.
-- **Audience:** Data Engineers, Architecture Leads
-
-### 5. [UI Wireframes & Component Ecosystem](./Wireframes.md)
-Textual representations of the global layout matrices simulating a retro physical device. Breaks down strictly defined active CSS Grid states, nested React/Svelte component trees, and UX pause overlay controls.
-- **Audience:** UI/UX Designers, Frontend Engineers
-
-### 6. [Local Development Guide](./Development_Guide.md)
-Exhaustive step-by-step framework instructions setting up the local pnpm Turborepo workspace. Defines the critical mental model for understanding the asynchronous data bridge operating between the UI Canvas thread and Web Workers.
-- **Audience:** New Contributors, Open Source Developers
-
-### 7. [Test Strategy Workflows](./workflows/Setup.md)
-Outlines precise methods ensuring the underlying libretro WebAssembly cores do not drop below a strict 60 FPS constraint while maintaining pixel-perfect alias alignments. Includes PR contribution and code-style validation rules.
-- **Audience:** Core Engine Testers, Community Contributors
+### 1. [Root README](../README.md)
+The primary entry point for the project. Covers:
+- What RetroVault does (feature list)
+- How the three-column UI is structured
+- How to get started (clone, install, run)
+- How to play a game step by step
+- Platform and core support table
+- Full tech stack
 
 ---
 
-## Why RetroVault?
-* **Zero Registration:** Start playing instantly via local browser storage.
-* **100% Privacy Absolute:** Game data, ROM backups, and SRAM battery saves never leave your host device.
-* **Aesthetic Focus:** More than just an emulator — an immersive, responsive frontend that turns your ROM collection into a gorgeous, personalized digital museum.
+### 2. [System Architecture](./Architecture.md)
+The definitive technical architecture reference. Covers:
+- The five architectural layers (Presentation, Scanner, Emulation, Storage, Output)
+- Exact responsibilities of `App.tsx`, `EmulatorConsole.tsx`, `@retrovault/core`, and `@retrovault/db`
+- Full Mermaid sequence diagram: from clicking a game to audio output
+- Why Nostalgist.js was chosen over raw WASM Web Workers
+- Why `useRef` stabilization is critical in `EmulatorConsole.tsx`
+- Why localforage was chosen over OPFS for save data
+- The real monorepo directory structure
+- CSS architecture (themes, CRT filter, scanlines, texture)
 
 ---
 
-> **Safety & Legality Disclaimer**  
-> RetroVault is strictly an emulator frontend and runtime. It contains no copyrighted BIOS files, ROMs, or proprietary assets. It is designed solely as a tool for playing user-owned backups. Emulation is entirely client-side, meaning no illicit material is hosted, transmitted, or facilitated by the application's distribution servers.
+### 3. [Database & Storage Architecture](./Database_Architecture.md)
+The data persistence reference. Covers:
+- How `localforage` works and why it was chosen
+- All four store instances and their purposes
+- Full TypeScript data model definitions (`SaveStateMetadata`, `PlayHistory`, `UserSettings`, `KeyBindings`)
+- Complete API method table for each Storage service
+- Key naming conventions inside IndexedDB
+- The auto-save lifecycle (30-second interval, on-boot restore)
+- The play-time tracking lifecycle (10-second interval)
+- The `gameId` derivation strategy (`${fileName}-${fileSize}`)
+
+---
+
+### 4. [Local Development Guide](./Development_Guide.md)
+The contributor and developer setup guide. Covers:
+- Prerequisites (Node.js, pnpm version requirements)
+- Step-by-step first-time setup
+- Complete annotated boot flow walkthrough
+- ROM scanning and library build flow
+- Emulator launch flow (from click to running game)
+- Key files reference table
+- Turborepo pipeline commands
+- How to modify the Game Boy shell appearance
+- How to add a new emulation core
+- How to add a new storage feature
+- Common issues and their root causes (with fixes)
+
+---
+
+### 5. [Product Requirements Document](./PRD.md)
+The product vision and roadmap. Covers:
+- Executive summary and target audience
+- Core value propositions
+- Phased feature roadmap (Phase 1 through Phase 5+)
+- Strategy for future opt-in server-side scaling
+
+---
+
+### 6. [Software Requirements Specification](./SRS.md)
+The formal functional and non-functional requirements. Covers:
+- Strict UI/UX state requirements
+- Functional requirements (FR-001 through FR-xxx)
+- Non-functional requirements (performance, security, compatibility)
+- Database object schemas
+
+---
+
+### 7. [UI Wireframes & Component Ecosystem](./Wireframes.md)
+The visual layout reference. Covers:
+- Global layout grid definition
+- Component tree hierarchy
+- UX state definitions (idle, scanning, loading, playing, paused)
+
+---
+
+## 🔧 Quick Command Reference
+
+```bash
+pnpm install          # Install all workspace dependencies
+pnpm run dev          # Start development server (localhost:5173)
+pnpm run build        # Production build (all packages → apps/web)
+pnpm run lint         # ESLint across all workspaces
+pnpm run typecheck    # TypeScript validation across all workspaces
+pnpm run format       # Prettier format all .ts/.tsx/.md files
+pnpm run preview      # Serve production build locally
+```
+
+---
+
+## ⚖️ Legal Disclaimer
+
+RetroVault is strictly an emulation frontend and runtime. It ships with no copyrighted BIOS files, ROM dumps, or proprietary game assets. It is designed solely as a tool for running backups of games the user legally owns. No game content is hosted, transmitted, or served by this application.
