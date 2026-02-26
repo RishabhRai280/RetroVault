@@ -1,6 +1,8 @@
 <div align="center">
 
-<h1>🎮 RetroVault</h1>
+<img src="apps/web/public/logo.png" alt="RetroVault Logo" width="120" />
+
+<h1>RetroVault</h1>
 <p><strong>A local-first, browser-based retro game emulator with a pixel-perfect skeuomorphic Game Boy shell.</strong><br/>
 No uploads. No servers. No accounts. Just your ROMs, running right in the browser.</p>
 
@@ -22,11 +24,22 @@ No uploads. No servers. No accounts. Just your ROMs, running right in the browse
 ### Desktop — Actively Playing Pokémon Ruby
 ![Desktop view with Pokémon Ruby running on the emulator, telemetry showing 30 FPS and ARM7TDMI architecture](apps/web/public/screenshot-desktop-gameplay.png)
 
-### Mobile — Full-Screen Gameplay
-![Mobile portrait view showing the full Game Boy shell with D-pad, A/B, Select and Start buttons visible](apps/web/public/screenshot-mobile-gameplay.png)
+### Mobile — Full-Screen Gameplay & Telemetry
 
-### Mobile — Telemetry Bottom Sheet
-![Mobile telemetry bottom sheet showing real-time FPS graph, RAM alloc, VRAM, and architecture details](apps/web/public/screenshot-mobile-telemetry.png)
+<div align="center">
+<table>
+  <tr>
+    <td align="center" width="45%">
+      <img src="apps/web/public/screenshot-mobile-gameplay.png" alt="Mobile gameplay view showing full Game Boy shell with all buttons" width="100%" />
+      <br/><em>Full-screen gameplay on mobile</em>
+    </td>
+    <td align="center" width="45%">
+      <img src="apps/web/public/screenshot-mobile-telemetry.png" alt="Mobile telemetry bottom sheet with FPS graph and hardware stats" width="100%" />
+      <br/><em>Telemetry bottom-sheet</em>
+    </td>
+  </tr>
+</table>
+</div>
 
 ---
 
