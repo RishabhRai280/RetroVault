@@ -59,7 +59,7 @@ export interface GameMetadata {
      * Detected target platform extracted from the file extension.
      * 'UNKNOWN' is used for unrecognized extensions (e.g., .zip files with ambiguous content).
      */
-    platform: 'GBA' | 'SNES' | 'NES' | 'UNKNOWN';
+    platform: 'GBA' | 'GBC' | 'GB' | 'SNES' | 'NES' | 'UNKNOWN';
 
     /**
      * Optional URL to the game's box art image hosted on the libretro-thumbnails GitHub CDN.
@@ -123,6 +123,8 @@ export const extractMetadataFromName = (fileName: string): Partial<GameMetadata>
     // Step 4: Derive the platform from the file extension
     let platform: GameMetadata['platform'] = 'UNKNOWN';
     if (fileName.toLowerCase().endsWith('.gba')) platform = 'GBA';
+    else if (fileName.toLowerCase().endsWith('.gbc')) platform = 'GBC';
+    else if (fileName.toLowerCase().endsWith('.gb')) platform = 'GB';
     else if (fileName.toLowerCase().endsWith('.smc') || fileName.toLowerCase().endsWith('.sfc')) platform = 'SNES';
     else if (fileName.toLowerCase().endsWith('.nes')) platform = 'NES';
     // Files ending in .zip or .md remain 'UNKNOWN' unless further inspection is implemented
@@ -160,6 +162,8 @@ export const getBoxArtUrl = (title: string, platform: GameMetadata['platform']):
      */
     const systemMap: Record<string, string> = {
         'GBA': 'Nintendo_-_Game_Boy_Advance',
+        'GBC': 'Nintendo_-_Game_Boy_Color',
+        'GB': 'Nintendo_-_Game_Boy',
         'SNES': 'Nintendo_-_Super_Nintendo_Entertainment_System',
         'NES': 'Nintendo_-_Nintendo_Entertainment_System'
     };
@@ -187,7 +191,7 @@ export const getBoxArtUrl = (title: string, platform: GameMetadata['platform']):
  * Uses the browser's File System Access API `FileSystemDirectoryHandle` to iterate
  * directory entries without requiring the user to upload or copy any files.
  *
- * SUPPORTED EXTENSIONS: `.gba`, `.smc`, `.sfc`, `.nes`, `.zip`
+ * SUPPORTED EXTENSIONS: `.gba`, `.gbc`, `.gb`, `.smc`, `.sfc`, `.nes`, `.zip`
  * Note: `.zip` files are included for broad compatibility, though the content type
  * will be marked 'UNKNOWN' and no box art will be fetched.
  *
@@ -213,7 +217,7 @@ export const scanDirectory = async (dirHandle: FileSystemDirectoryHandle): Promi
     for await (const entry of dirHandle.values()) {
         if (entry.kind === 'file') {
             // Filter: only process files with recognized ROM extensions
-            const isRomFile = entry.name.match(/\.(gba|smc|sfc|nes|zip)$/i);
+            const isRomFile = entry.name.match(/\.(gba|gbc|gb|smc|sfc|nes|zip)$/i);
             if (isRomFile) {
                 // @ts-ignore - FileSystemFileHandle.getFile() exists but may not be typed
                 const file = await entry.getFile();

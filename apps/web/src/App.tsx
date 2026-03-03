@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent, type SyntheticEvent } from 'react';
 import { Button, Card } from '@retrovault/ui';
 import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizontal, X, Menu, Maximize } from 'lucide-react';
 import { Nostalgist } from 'nostalgist';
@@ -36,8 +36,12 @@ function App() {
   const [systemLogs, setSystemLogs] = useState<{ time: Date; message: string }[]>([]);
   const [saveStates, setSaveStates] = useState<SaveStateMetadata[]>([]);
 
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<'ALL' | 'GBA' | 'GBC' | 'GB' | 'SNES' | 'NES'>('ALL');
+
   const addLog = (message: string) => {
-    setSystemLogs(prev => {
+    setSystemLogs((prev: { time: Date; message: string }[]) => {
       const newLogs = [{ time: new Date(), message }, ...prev];
       return newLogs.slice(0, 50); // Keep last 50 logs
     });
@@ -46,9 +50,9 @@ function App() {
   // Fetch Save States whenever activeGame changes
   useEffect(() => {
     if (activeGame) {
-      SaveStateStorage.getStatesForGame(activeGame.metadata.id).then(states => {
+      SaveStateStorage.getStatesForGame(activeGame.metadata.id).then((states: SaveStateMetadata[]) => {
         // Sort descending by timestamp
-        setSaveStates(states.sort((a, b) => b.timestamp - a.timestamp));
+        setSaveStates(states.sort((a: SaveStateMetadata, b: SaveStateMetadata) => b.timestamp - a.timestamp));
         addLog(`Loaded ${states.length} save states for ${activeGame.metadata.title || activeGame.metadata.fileName}`);
       });
     } else {
@@ -69,7 +73,7 @@ function App() {
 
       // Refresh list
       const states = await SaveStateStorage.getStatesForGame(activeGame.metadata.id);
-      setSaveStates(states.sort((a, b) => b.timestamp - a.timestamp));
+      setSaveStates(states.sort((a: SaveStateMetadata, b: SaveStateMetadata) => b.timestamp - a.timestamp));
     } catch (err) {
       addLog("Failed to create save state.");
       console.error(err);
@@ -231,7 +235,7 @@ function App() {
         // JS heap size tracking if available in Chromium
         const memObj = (performance as { memory?: { usedJSHeapSize: number } }).memory;
         const ram = memObj ? Math.round(memObj.usedJSHeapSize / 1024 / 1024) : 0;
-        setTelemetry(prev => ({
+        setTelemetry((prev: { fps: number; ram: number; vram: number; history: number[] }) => ({
           fps,
           ram,
           vram: Math.round(ram * 0.15), // mock vram based on RAM footprint
@@ -258,7 +262,11 @@ function App() {
 
   // --- Computed Properties ---
   // Just show all games for the cartridge list right now
-  const filteredGames = games;
+  const filteredGames = games.filter((game: GameMetadata) => {
+    const matchesSearch = (game.title || game.fileName).toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPlatform = platformFilter === 'ALL' || game.platform === platformFilter;
+    return matchesSearch && matchesPlatform;
+  });
 
   return (
     <div className={`flex flex-col h-[100dvh] w-full bg-[#111] overflow-hidden text-[#333] theme-${userSettings?.colorTheme || 'arcade-neon'} ${userSettings?.crtFilterEnabled ? 'crt-filter' : ''} ${userSettings?.scanlinesEnabled ? 'scanlines' : ''}`}>
@@ -314,9 +322,44 @@ function App() {
 
           {/* Game Library: Flexes to fill available space */}
           <Card className="flex flex-col flex-1 min-h-0 p-4 !rounded-xl !border-[0] shadow-xl bg-[#e0ddcf]">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b-2 border-[#c0bdae] shrink-0">
-              <h3 className="text-sm font-black text-[#4a4b52] uppercase tracking-widest">Library</h3>
-              <Button variant="primary" size="sm" onClick={handleSelectVault} className="text-[10px] py-1.5 px-3 bg-[#a61022] hover:bg-[#800a16] text-white border-b-4 border-[#5a000a] active:border-b-0 active:translate-y-1 transition-all rounded-full shadow-md font-bold truncate max-w-[120px]">{dirHandle ? 'CHG VAULT' : '+ ADD ROM'}</Button>
+            <div className="flex justify-between items-center px-1 mb-4">
+              <h3 className="text-sm font-black text-[#4a4b52] uppercase tracking-widest flex items-center gap-2">
+                <Library size={16} /> Library
+              </h3>
+              <button onClick={handleSelectVault} className="text-[10px] py-1 px-3 bg-[#a61022] hover:bg-[#800a16] text-white border-b-4 border-[#5a000a] active:border-b-0 active:translate-y-[2px] transition-all rounded shadow-[0_4px_8px_rgba(0,0,0,0.3)] font-bold uppercase tracking-wider">
+                {dirHandle ? 'CHG VAULT' : '+ ADD VAULT'}
+              </button>
+            </div>
+
+            <div className="px-1 mb-3 space-y-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="SEARCH VAULT..."
+                  value={searchQuery}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#1a1a1a]/10 border-2 border-[#c0bdae] rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-widest text-[#4a4b52] placeholder:text-[#8c897d] focus:outline-none focus:border-[#a61022] transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8c897d] hover:text-[#a61022]"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
+                {(['ALL', 'GBA', 'GBC', 'GB', 'SNES', 'NES'] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPlatformFilter(p)}
+                    className={`px-2 py-0.5 rounded-full text-[8px] font-black tracking-widest transition-all ${platformFilter === p ? 'bg-[#a61022] text-white shadow-md' : 'bg-[#c0bdae]/50 text-[#4a4b52] hover:bg-[#c0bdae]'}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-3 place-items-center pr-2 custom-scrollbar relative pb-2 content-start">
@@ -326,12 +369,16 @@ function App() {
                   <p className="animate-pulse tracking-widest font-bold text-xs">SCANNING...</p>
                 </div>
               ) : games.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-50 col-span-2">
-                  <Gamepad2 size={32} className="text-[#555] mb-2" />
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-[#555]">Vault is Empty</h3>
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-3 col-span-2 mt-10">
+                  <Gamepad2 size={40} className="text-[#8c897d] mb-1" />
+                  <h3 className="text-sm font-black uppercase tracking-widest text-[#4a4b52]">Vault is Empty</h3>
+                  <button onClick={handleSelectVault} className="mt-2 text-xs py-2 px-5 bg-[#1a1a1a] hover:bg-[#222] text-[var(--retro-neon)] border-2 border-[#333] active:bg-[#000] transition-all rounded shadow-md font-bold uppercase tracking-wider">
+                    Mount Local Folder
+                  </button>
+                  <p className="text-[10px] text-[#8c897d] max-w-[200px] mt-4 font-bold">Select a local folder containing your specific ROM files (.gba, .sfc, .nes, etc)</p>
                 </div>
               ) : (
-                filteredGames.map((game) => {
+                filteredGames.map((game: GameMetadata) => {
                   const history = playHistory[game.id];
                   return (
                     <div
@@ -397,7 +444,7 @@ function App() {
                               alt={`${game.title || game.fileName} Box Art`}
                               className="absolute inset-0 w-full h-full object-cover pixelated opacity-95 group-hover:scale-110 transition-transform duration-700 z-10 bg-[#e0ddcf]"
                               loading="lazy"
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              onError={(e: SyntheticEvent<HTMLImageElement, Event>) => { e.currentTarget.style.display = 'none'; }}
                             />
                           )}
 
@@ -427,7 +474,7 @@ function App() {
               {systemLogs.length === 0 ? (
                 <span className="opacity-50 italic">Waiting for events...</span>
               ) : (
-                systemLogs.map((log, i) => (
+                systemLogs.map((log: { time: Date; message: string }, i: number) => (
                   <div key={i} className="whitespace-normal break-words mb-1 last:mb-0">
                     <span className="opacity-50">[{log.time.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span> {log.message}
                   </div>
@@ -455,7 +502,7 @@ function App() {
                   <span className="text-[8px] tracking-widest text-[#555] px-4">Ensure a game is running to create or load saves.</span>
                 </div>
               ) : (
-                saveStates.map((save) => (
+                saveStates.map((save: SaveStateMetadata) => (
                   <div
                     key={save.id}
                     className="w-full bg-[#f2f2f0] text-left p-2 rounded-md shadow-[0_2px_5px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,1)] border border-[#a19f93] hover:bg-[#ffffff] transition-colors flex justify-between items-center group relative overflow-hidden"
@@ -733,7 +780,7 @@ function App() {
                     type="range"
                     min="0" max="1" step="0.05"
                     value={userSettings?.volume || 1}
-                    onChange={(e) => updateSettings({ volume: parseFloat(e.target.value) })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateSettings({ volume: parseFloat(e.target.value) })}
                     className="slider-mechanical w-full min-w-full block"
                   />
                 </div>
@@ -745,7 +792,7 @@ function App() {
                 <div className="relative">
                   <select
                     value={userSettings?.colorTheme || 'arcade-neon'}
-                    onChange={(e) => updateSettings({ colorTheme: e.target.value as UserSettings['colorTheme'] })}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => updateSettings({ colorTheme: e.target.value as UserSettings['colorTheme'] })}
                     className="bg-[#1a1a1a] border-2 border-[#444] text-[var(--retro-neon)] p-1.5 rounded-md text-xs uppercase font-bold focus:outline-none w-full shadow-[inset_0_2px_5px_rgba(0,0,0,0.8)] appearance-none pr-8 cursor-pointer hover:border-[#666] transition-colors"
                   >
                     <option value="arcade-neon">Arcade Neon</option>
@@ -772,7 +819,7 @@ function App() {
               <div className="flex items-center justify-between bg-[#b5b2a3] p-2.5 rounded-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] border border-[#8c897d]">
                 <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">DISPLAY.CRT</span>
                 <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
-                  <input type="checkbox" className="sr-only peer" checked={userSettings?.crtFilterEnabled || false} onChange={(e) => updateSettings({ crtFilterEnabled: e.target.checked })} />
+                  <input type="checkbox" className="sr-only peer" checked={userSettings?.crtFilterEnabled || false} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSettings({ crtFilterEnabled: e.target.checked })} />
                   {/* Heavy Mechanical Toggle Base */}
                   <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-t-0 after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]">
                     <div className="absolute inset-x-0 bottom-[-4px] h-[4px] bg-[#ff0000] z-0 peer-checked:opacity-100 opacity-0 transition-opacity"></div>
@@ -783,7 +830,7 @@ function App() {
               <div className="flex items-center justify-between bg-[#b5b2a3] p-2.5 rounded-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] border border-[#8c897d] mt-[-4px]">
                 <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">DISPLAY.SCL</span>
                 <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
-                  <input type="checkbox" className="sr-only peer" checked={userSettings?.scanlinesEnabled || false} onChange={(e) => updateSettings({ scanlinesEnabled: e.target.checked })} />
+                  <input type="checkbox" className="sr-only peer" checked={userSettings?.scanlinesEnabled || false} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSettings({ scanlinesEnabled: e.target.checked })} />
                   <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-t-0 after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]">
                     <div className="absolute inset-x-0 bottom-[-4px] h-[4px] bg-[#ff0000] z-0 peer-checked:opacity-100 opacity-0 transition-opacity"></div>
                   </div>
@@ -861,6 +908,37 @@ function App() {
                   {dirHandle ? 'CHG VAULT' : '+ ADD ROM'}
                 </button>
               </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="SEARCH VAULT..."
+                    value={searchQuery}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#1a1a1a]/5 border-2 border-[#c0bdae] rounded-xl px-4 py-2 text-[11px] font-bold tracking-widest text-[#4a4b52] placeholder:text-[#8c897d] focus:outline-none focus:border-[#a61022]"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8c897d]"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {(['ALL', 'GBA', 'GBC', 'GB', 'SNES', 'NES'] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPlatformFilter(p)}
+                      className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest whitespace-nowrap transition-all ${platformFilter === p ? 'bg-[#a61022] text-white shadow-lg' : 'bg-[#c0bdae]/30 text-[#4a4b52]'}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="grid grid-cols-3 gap-3 pb-2">
                 {isScanning ? (
                   <div className="col-span-3 flex justify-center py-8">
@@ -872,7 +950,7 @@ function App() {
                     <p className="text-xs font-bold uppercase tracking-widest text-[#555]">Vault is Empty</p>
                   </div>
                 ) : (
-                  filteredGames.map((game) => {
+                  filteredGames.map((game: GameMetadata) => {
                     const history = playHistory[game.id];
                     return (
                       <div
@@ -897,7 +975,7 @@ function App() {
                           <span className="text-[7px] font-black tracking-widest text-[#e0ddcf] uppercase">{history?.timePlayedSeconds ? `${Math.floor(history.timePlayedSeconds / 60)}m` : 'NEW'}</span>
                         </div>
                         {game.boxArtUrl ? (
-                          <img src={game.boxArtUrl} alt={game.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                          <img src={game.boxArtUrl} alt={game.title} className="w-full h-full object-cover" loading="lazy" onError={(e: SyntheticEvent<HTMLImageElement, Event>) => { e.currentTarget.style.display = 'none'; }} />
                         ) : (
                           <div className="flex-1 flex items-center justify-center p-2">
                             <span className="text-[9px] font-black text-[#333] text-center uppercase leading-tight">{game.title}</span>
@@ -934,7 +1012,7 @@ function App() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {saveStates.map((save) => (
+                  {saveStates.map((save: SaveStateMetadata) => (
                     <div key={save.id} className="flex justify-between items-center bg-[#f2f2f0] p-3 rounded-lg border border-[#c0bdae] shadow-sm">
                       <div>
                         <p className="text-[11px] font-bold text-[#29225c]">{new Date(save.timestamp).toLocaleDateString()} {new Date(save.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
@@ -959,7 +1037,7 @@ function App() {
                 {systemLogs.length === 0 ? (
                   <span className="opacity-50 italic">Waiting for events...</span>
                 ) : (
-                  systemLogs.map((log, i) => (
+                  systemLogs.map((log: { time: Date; message: string }, i: number) => (
                     <div key={i} className="break-words">
                       <span className="opacity-50">[{log.time.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span> {log.message}
                     </div>
@@ -979,7 +1057,7 @@ function App() {
               <div className="bg-[#1a1a1a] rounded-lg p-3 border-2 border-[#333] font-mono text-xs text-[#00ff00]">
                 {/* FPS Graph */}
                 <div className="flex items-end h-16 border-b border-[#333] pb-1 gap-[2px] mb-3">
-                  {telemetry.history.map((val, i) => (
+                  {telemetry.history.map((val: number, i: number) => (
                     <div key={i} className={`flex-1 rounded-t transition-all duration-300 ${val > 45 ? 'bg-[var(--retro-neon)]' : val > 0 ? 'bg-[#ffb000]' : 'bg-[#222]'}`}
                       style={{ height: `${Math.max(5, Math.min(100, (val / 60) * 100))}%` }}
                     />
@@ -1011,7 +1089,7 @@ function App() {
                 <div className="px-3 py-2 bg-[#b5b2a3] rounded-lg shadow-inner border border-[#8c897d]">
                   <input type="range" min="0" max="1" step="0.05"
                     value={userSettings?.volume || 1}
-                    onChange={(e) => updateSettings({ volume: parseFloat(e.target.value) })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateSettings({ volume: parseFloat(e.target.value) })}
                     className="slider-mechanical w-full block"
                   />
                 </div>
@@ -1023,7 +1101,7 @@ function App() {
                 <div className="relative">
                   <select
                     value={userSettings?.colorTheme || 'arcade-neon'}
-                    onChange={(e) => updateSettings({ colorTheme: e.target.value as UserSettings['colorTheme'] })}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) => updateSettings({ colorTheme: e.target.value as UserSettings['colorTheme'] })}
                     className="bg-[#1a1a1a] border-2 border-[#444] text-[var(--retro-neon)] p-2 rounded-md text-xs uppercase font-bold w-full appearance-none pr-8 cursor-pointer"
                   >
                     <option value="arcade-neon">Arcade Neon</option>
@@ -1046,7 +1124,7 @@ function App() {
               <div className="flex items-center justify-between bg-[#b5b2a3] p-3 rounded-md border border-[#8c897d]">
                 <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">DISPLAY.CRT</span>
                 <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
-                  <input type="checkbox" className="sr-only peer" checked={userSettings?.crtFilterEnabled || false} onChange={(e) => updateSettings({ crtFilterEnabled: e.target.checked })} />
+                  <input type="checkbox" className="sr-only peer" checked={userSettings?.crtFilterEnabled || false} onChange={(e: ChangeEvent<HTMLInputElement>) => updateSettings({ crtFilterEnabled: e.target.checked })} />
                   <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]"></div>
                 </label>
               </div>
@@ -1055,7 +1133,7 @@ function App() {
               <div className="flex items-center justify-between bg-[#b5b2a3] p-3 rounded-md border border-[#8c897d]">
                 <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">DISPLAY.SCL</span>
                 <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
-                  <input type="checkbox" className="sr-only peer" checked={userSettings?.scanlinesEnabled || false} onChange={(e) => updateSettings({ scanlinesEnabled: e.target.checked })} />
+                  <input type="checkbox" className="sr-only peer" checked={userSettings?.scanlinesEnabled || false} onChange={(e: ChangeEvent<HTMLInputElement>) => updateSettings({ scanlinesEnabled: e.target.checked })} />
                   <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]"></div>
                 </label>
               </div>

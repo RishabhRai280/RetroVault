@@ -13,8 +13,11 @@ No backend. No accounts. No uploads. Everything runs in your browser.
 ## 📚 Documentation Index
 
 ### 1. [Root README](../README.md)
+
 The primary entry point for the project. Covers:
+
 - What RetroVault does (feature list)
+- Library Search & Filter functionality
 - How the three-column UI is structured
 - How to get started (clone, install, run)
 - How to play a game step by step
@@ -24,7 +27,9 @@ The primary entry point for the project. Covers:
 ---
 
 ### 2. [System Architecture](./Architecture.md)
+
 The definitive technical architecture reference. Covers:
+
 - The five architectural layers (Presentation, Scanner, Emulation, Storage, Output)
 - Exact responsibilities of `App.tsx`, `EmulatorConsole.tsx`, `@retrovault/core`, and `@retrovault/db`
 - Full Mermaid sequence diagram: from clicking a game to audio output
@@ -37,7 +42,9 @@ The definitive technical architecture reference. Covers:
 ---
 
 ### 3. [Database & Storage Architecture](./Database_Architecture.md)
+
 The data persistence reference. Covers:
+
 - How `localforage` works and why it was chosen
 - All four store instances and their purposes
 - Full TypeScript data model definitions (`SaveStateMetadata`, `PlayHistory`, `UserSettings`, `KeyBindings`)
@@ -50,7 +57,9 @@ The data persistence reference. Covers:
 ---
 
 ### 4. [Local Development Guide](./Development_Guide.md)
+
 The contributor and developer setup guide. Covers:
+
 - Prerequisites (Node.js, pnpm version requirements)
 - Step-by-step first-time setup
 - Complete annotated boot flow walkthrough
@@ -66,7 +75,9 @@ The contributor and developer setup guide. Covers:
 ---
 
 ### 5. [Product Requirements Document](./PRD.md)
+
 The product vision and roadmap. Covers:
+
 - Executive summary and target audience
 - Core value propositions
 - Phased feature roadmap (Phase 1 through Phase 5+)
@@ -75,7 +86,9 @@ The product vision and roadmap. Covers:
 ---
 
 ### 6. [Software Requirements Specification](./SRS.md)
+
 The formal functional and non-functional requirements. Covers:
+
 - Strict UI/UX state requirements
 - Functional requirements (FR-001 through FR-xxx)
 - Non-functional requirements (performance, security, compatibility)
@@ -84,7 +97,9 @@ The formal functional and non-functional requirements. Covers:
 ---
 
 ### 7. [UI Wireframes & Component Ecosystem](./Wireframes.md)
+
 The visual layout reference. Covers:
+
 - Global layout grid definition
 - Component tree hierarchy
 - UX state definitions (idle, scanning, loading, playing, paused)

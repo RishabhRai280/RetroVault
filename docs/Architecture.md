@@ -1,4 +1,5 @@
 # System Architecture
+
 ## RetroVault — v1.0.0
 
 **Status:** Implemented & Active
@@ -45,6 +46,7 @@ The root React component that:
 
 - **Manages all global state** using React `useState` hooks:
   - `games` — the scanned ROM library (`GameMetadata[]`)
+  - `searchQuery` & `platformFilter` — active library filters
   - `activeGame` — the currently loaded game (`{ metadata, file }`)
   - `emulatorInstance` — the live `Nostalgist` object reference
   - `userSettings` — volume, themes, key bindings
@@ -60,6 +62,7 @@ The isolated wrapper component responsible for all Nostalgist.js lifecycle event
 
 - **Boots one ROM** when `romFile` prop changes — uses a `useEffect` with `[romFile, resolveCore, gameId, gameTitle, platform]` as dependencies (deliberately **excluding** `volume`, `onLog`, `keyBindings` to prevent infinite restart loops — these are accessed via stable `useRef` snapshots instead)
 - **Resolves the correct Libretro core** via its internal `CORE_MAP`:
+
   ```ts
   GBA  → mgba
   SNES → snes9x
@@ -68,6 +71,7 @@ The isolated wrapper component responsible for all Nostalgist.js lifecycle event
   GBC  → gambatte
   MD   → genesis_plus_gx
   ```
+
 - **Calls `Nostalgist.launch()`** with the ROM file, resolved core, a reference to the `<canvas>` element, retro-arch config (audio volume in dB, key bindings, auto save/load flags), and the current container pixel size
 - **Attempts to restore an auto-save state** from `localforage` after boot (via `SaveStateStorage.loadAutoState`)
 - **Auto-saves every 30 seconds** in the background using a `setInterval`
@@ -81,7 +85,9 @@ The isolated wrapper component responsible for all Nostalgist.js lifecycle event
 Exposes three pure utility functions with no React or storage dependency:
 
 #### `scanDirectory(dirHandle)`
+
 Traverses the `FileSystemDirectoryHandle` provided by the browser's `showDirectoryPicker()` dialog. For each file matching `.gba`, `.smc`, `.sfc`, `.nes`, `.zip`, it:
+
 1. Calls `extractMetadataFromName(fileName)` to get clean title and platform
 2. Generates a stable `id` as `${fileName}-${file.size}`
 3. Calls `getBoxArtUrl(title, platform)` to build the CDN box art URL
@@ -90,13 +96,16 @@ Traverses the `FileSystemDirectoryHandle` provided by the browser's `showDirecto
 Returns all games sorted alphabetically by title.
 
 #### `extractMetadataFromName(fileName)`
+
 Uses RegExp to:
+
 - Strip the file extension
-- Remove leading numbering patterns (e.g., `1636 - `)
+- Remove leading numbering patterns (e.g., `1636 -`)
 - Strip parenthetical region/group codes (e.g., `(U)(Squirrels)`, `(USA, Europe)`)
 - Detect platform from extension
 
 #### `getBoxArtUrl(title, platform)`
+
 Constructs a direct URL to the official `libretro-thumbnails` GitHub repository, mapping platform codes to folder names and URL-encoding the title with underscores replacing spaces.
 
 ### 2.4 Storage Layer — `packages/db/src/index.ts`
@@ -113,6 +122,7 @@ Built on top of **localforage**, which uses IndexedDB under the hood with a clea
 Four typed service objects provide the public API:
 
 **`SaveStateStorage`**
+
 - `saveState(gameId, gameTitle, blob)` — writes binary blob + metadata entry
 - `loadState(saveId)` — retrieves blob by exact save ID
 - `getStatesForGame(gameId)` — retrieves all save metadata for a game
@@ -120,14 +130,17 @@ Four typed service objects provide the public API:
 - `loadAutoState(gameId)` — retrieves auto-save slot
 
 **`SettingsStorage`**
+
 - `getSettings()` — returns stored `UserSettings` or defaults
 - `updateSettings(partial)` — merges changes and persists
 
 **`PlayHistoryStorage`**
+
 - `updatePlayHistory(gameId, increment)` — increments seconds and updates timestamp
 - `getAllPlayHistory()` — returns full map for all games (used to show playtime badges on library cards)
 
 **`FavoritesStorage`**
+
 - `getFavorites()` / `toggleFavorite(gameId)` / `isFavorite(gameId)` — manages a stored ID list (UI is currently commented out, present for future use)
 
 ### 2.5 Shared UI Components — `packages/ui`
@@ -181,15 +194,21 @@ sequenceDiagram
 ## 4. Key Architectural Decisions
 
 ### Why Nostalgist.js instead of raw Web Workers?
+
 Nostalgist.js encapsulates the entire Libretro WASM loading, threading, and canvas-binding complexity. It provides a clean async API for launching, saving, loading state, resizing, key press simulation, and exiting. This allowed us to focus engineering effort on UI fidelity rather than low-level WASM plumbing.
 
 ### Why `useRef` for volume/logging/keybindings in EmulatorConsole?
+
 React's `useEffect` re-runs whenever its dependency array changes. If `onLog` (a new function reference on every render), `volume`, or `keyBindings` were in the deps array, any parent re-render (including telemetry FPS counter ticks) would tear down and restart the entire emulator. Instead, these values are written into mutable `useRef` containers that are always current but never trigger teardown.
 
+- [Feature: Library Search & Filter](./Feature_Search_Filter.md)
+
 ### Why localforage instead of raw IndexedDB or OPFS?
+
 The original architecture spec called for OPFS for ROM binary storage. In the delivered implementation, ROMs are accessed directly via the `FileSystemDirectoryHandle` (not copied into the browser). localforage provides a much simpler API for the metadata and save-state use cases without the need for service worker coordination or OPFS synchronous access handles in shared workers.
 
 ### Why the File System Access API instead of drag & drop uploads?
+
 The FSA API gives persistent access to a user-selected directory, which means the app can re-read any ROM file on demand without the user uploading it. This allows a library of gigabytes of ROMs to be "indexed" with essentially zero storage overhead inside the browser.
 
 ---
