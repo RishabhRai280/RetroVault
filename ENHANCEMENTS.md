@@ -11,7 +11,7 @@ This document outlines the planned enhancements for RetroVault, aimed at transfo
 | **Search & Filter** | Library | Low | High | P0 | ✅ Completed |
 | **Customizable Shells** | Gameplay | Low | Medium | P1 | ⏳ Planned |
 | **Automatic Metadata Scraping** | Library | Medium | High | P1 | ⏳ Planned |
-| **Fast-Forward / Rewind** | Gameplay | Medium | High | P1 | ⏳ Planned |
+| **Fast-Forward / Rewind** | Gameplay | Medium | High | P1 | ✅ Completed |
 | **Haptic Feedback** | Gameplay | Low | Medium | P1 | ⏳ Planned |
 | **Advanced Shaders (WebGPU/WebGL)** | Technical | High | Medium | P2 | ⏳ Planned |
 | **Multiplayer (WebRTC)** | Technical | Very High | Very High | P3 | ⏳ Planned |

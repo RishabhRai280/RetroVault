@@ -286,6 +286,11 @@ export function EmulatorConsole({ gameId, gameTitle, romFile, platform, volume, 
                         audio_volume: volumeDB,                 // Converted from 0-1 slider to dB
                         savestate_auto_save: true,              // Libretro internal auto-save (separate from ours)
                         savestate_auto_load: true,              // Libretro internal auto-load on boot
+                        rewind_enable: true,                    // Enable rewind buffer
+                        rewind_buffer_size: 10485760,           // 10MB rewind buffer
+                        rewind_granularity: 2,                  // Save state every 2 frames for rewind
+                        input_rewind: 'backspace',              // Rewind hotkey
+                        input_hold_fast_forward: 'space',       // Fast-Forward hotkey
                         ...(currentBindings ? {
                             // Map our UI key binding names to libretro retroarch config keys
                             input_player1_up: currentBindings.up,

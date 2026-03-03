@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type ChangeEvent, type SyntheticEvent } from 'react';
 import { Button, Card } from '@retrovault/ui';
-import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizontal, X, Menu, Maximize } from 'lucide-react';
+import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizontal, X, Menu, Maximize, FastForward, Rewind } from 'lucide-react';
 import { Nostalgist } from 'nostalgist';
 import { scanDirectory } from '@retrovault/core';
 import type { GameMetadata } from '@retrovault/core';
@@ -216,6 +216,19 @@ function App() {
 
   const simulateKeyUp = (button: string) => {
     if (emulatorInstance) emulatorInstance.pressUp(button);
+  };
+
+  const simulateKeyboardEvent = (code: string, isDown: boolean) => {
+    const canvas = document.querySelector('#emulator-view canvas') as HTMLCanvasElement;
+    if (canvas) {
+      canvas.dispatchEvent(new KeyboardEvent(isDown ? 'keydown' : 'keyup', {
+        code: code,
+        key: code,
+        bubbles: true,
+        cancelable: true
+      }));
+      if (isDown) canvas.focus();
+    }
   };
 
   // Real Telemetry Loop
@@ -562,6 +575,29 @@ function App() {
             {/* Exact DMG Screen Bezel */}
             <div className="w-[95%] h-[420px] bg-[#61626a] rounded-t-xl rounded-b-[4rem] pt-8 pb-8 px-10 shadow-[inset_0_10px_20px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center relative border-b-4 border-r-2 border-[#444] mt-2 shrink-0">
 
+              {/* Rewind/Fast-Forward overlay */}
+              {activeGame && (
+                <div className="absolute top-2 right-4 flex gap-2 z-50 opacity-50 hover:opacity-100 transition-opacity">
+                  <button
+                    className="bg-[#222]/80 text-[#c0bdae] p-1.5 rounded-full hover:bg-[var(--retro-neon)] hover:text-black active:scale-90 transition-all shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.8)] backdrop-blur-sm cursor-pointer"
+                    onPointerDown={() => simulateKeyboardEvent('Backspace', true)}
+                    onPointerUp={() => simulateKeyboardEvent('Backspace', false)}
+                    onPointerOut={() => simulateKeyboardEvent('Backspace', false)}
+                    title="Rewind (Hold Backspace)"
+                  >
+                    <Rewind size={16} fill="currentColor" />
+                  </button>
+                  <button
+                    className="bg-[#222]/80 text-[#c0bdae] p-1.5 rounded-full hover:bg-[var(--retro-neon)] hover:text-black active:scale-90 transition-all shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.8)] backdrop-blur-sm cursor-pointer"
+                    onPointerDown={() => simulateKeyboardEvent('Space', true)}
+                    onPointerUp={() => simulateKeyboardEvent('Space', false)}
+                    onPointerOut={() => simulateKeyboardEvent('Space', false)}
+                    title="Fast Forward (Hold Space)"
+                  >
+                    <FastForward size={16} fill="currentColor" />
+                  </button>
+                </div>
+              )}
 
               {/* Actual Screen Content */}
               <div id="emulator-view" className="w-full max-w-[450px] flex-1 bg-[#8bac0f] rounded-none overflow-hidden relative border-[4px] border-[#222] shadow-[inset_0_0_30px_rgba(0,0,0,0.4)] ring-1 ring-[#555]">
