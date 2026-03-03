@@ -547,6 +547,7 @@ export function EmulatorConsole({ gameId, gameTitle, romFile, platform, volume, 
                         - `cursor-crosshair` provides a subtle UX cue that this is an interactive area
                     ────────────────────────────────────────────────────────── */}
                     <canvas
+                        key={gameId}
                         ref={canvasRef}
                         className="w-full h-full object-contain pixelated outline-none cursor-crosshair"
                         style={{ imageRendering: 'pixelated' }}
