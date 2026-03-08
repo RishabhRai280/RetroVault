@@ -78,6 +78,16 @@ export const playHistoryStore = localforage.createInstance({
     description: "User playtime and last played timestamps"
 });
 
+/**
+ * Isolated localforage store for caching game metadata fetched from external APIs.
+ * Key per game = the `gameId` string itself → `GameMetadata` object.
+ */
+export const metadataStore = localforage.createInstance({
+    name: "RetroVault",
+    storeName: "metadata",
+    description: "Cached game metadata from external APIs"
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Favorites Storage
 // ─────────────────────────────────────────────────────────────────────────────
@@ -350,20 +360,20 @@ export interface KeyBindings {
 export interface CasingTheme {
     /** The style chosen by the user */
     type: 'classic' | 'solid' | 'gradient' | 'image';
-    
+
     /** Used when type is 'classic' */
     classicId: 'plastic-gray' | 'atomic-purple' | 'clear' | 'yellow';
-    
+
     /** Used when type is 'solid' */
     solidColor: string;
-    
+
     /** Used when type is 'gradient' */
     gradient: {
         colorFrom: string;
         colorTo: string;
         direction: 'to right' | 'to bottom' | 'to bottom right' | 'to bottom left' | 'to top right' | 'to top left';
     };
-    
+
     /** Used when type is 'image' */
     imageUrl: string;
 }
@@ -465,5 +475,33 @@ export const SettingsStorage = {
         const updated = { ...current, ...newSettings }; // Non-destructive merge
         await settingsStore.setItem('user_settings', updated);
         return updated;
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Metadata Storage
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Service object for caching and retrieving fetched API metadata.
+ * Because reading games live from the user's filesystem triggers a fresh index every time,
+ * this database lets us remember Wikipedia scraping results permanently.
+ */
+export const MetadataStorage = {
+    /**
+     * Gets cached metadata (description, releaseYear, etc) for a game by ID.
+     * @param id The unique GameMetadata ID (e.g., Title.gba-1048576)
+     */
+    getMetadata: async (id: string): Promise<any | null> => {
+        return await metadataStore.getItem<any>(id);
+    },
+
+    /**
+     * Caches newly scraped metadata for a game permanently.
+     * @param id The unique GameMetadata ID
+     * @param metadata Scraped fields to persist
+     */
+    saveMetadata: async (id: string, metadata: any): Promise<void> => {
+        await metadataStore.setItem(id, metadata);
     }
 };

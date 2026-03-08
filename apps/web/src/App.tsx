@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, type ChangeEvent, type SyntheticEvent } fr
 import { Card } from '@retrovault/ui';
 import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizontal, X, Menu, Maximize, FastForward, Rewind } from 'lucide-react';
 import { Nostalgist } from 'nostalgist';
-import { scanDirectory } from '@retrovault/core';
+import { scanDirectory, fetchGameMetadata } from '@retrovault/core';
 import type { GameMetadata } from '@retrovault/core';
-import { SettingsStorage, PlayHistoryStorage, SaveStateStorage, DEFAULT_SETTINGS, type UserSettings, type KeyBindings, type PlayHistory, type SaveStateMetadata } from '@retrovault/db';
+import { SettingsStorage, PlayHistoryStorage, SaveStateStorage, MetadataStorage, DEFAULT_SETTINGS, type UserSettings, type KeyBindings, type PlayHistory, type SaveStateMetadata } from '@retrovault/db';
 import { EmulatorConsole } from './components/GameBoy/EmulatorConsole';
 import './index.css';
 
@@ -183,9 +183,46 @@ function App() {
       const foundGames = await scanDirectory(handle);
 
       addLog(`Discovered ${foundGames.length} ROMs in Vault.`);
-
       setGames(foundGames);
       setIsScanning(false);
+
+      // ── ASYNC METADATA ENRICHMENT LOOP ──
+      // Offload scraping to a non-blocking background queue so the UI doesn't hang.
+      (async () => {
+        let scrapedCount = 0;
+        for (let i = 0; i < foundGames.length; i++) {
+          const game = foundGames[i];
+          
+          // 1. Check if we've already cached this title in IndexedDB permanently
+          let meta = await MetadataStorage.getMetadata(game.id);
+          
+          if (!meta) {
+            // 2. Not cached: Hit the Wikipedia transparent API to discover lore
+            // We gently rate limit ourselves implicitly due to API roundtrips
+            meta = await fetchGameMetadata(game.title);
+            
+            // 3. Keep it permanently for future app launches
+            if (Object.keys(meta).length > 0) {
+              await MetadataStorage.saveMetadata(game.id, meta);
+              scrapedCount++;
+            } else {
+              // Cache empty result to avoid re-fetching failed queries endlessly
+              await MetadataStorage.saveMetadata(game.id, { _scraped: true });
+            }
+          }
+
+          // 4. Update the React state gracefully so the Game Library cards update live!
+          if (meta && Object.keys(meta).length > 0 && !meta._scraped) {
+            setGames(prevList => prevList.map(g => 
+              g.id === game.id ? { ...g, ...meta } : g
+            ));
+          }
+        }
+        
+        if (scrapedCount > 0) {
+          addLog(`Scraper finished. Extracted metadata for ${scrapedCount} new titles.`);
+        }
+      })();
 
     } catch (err) {
       console.error("Failed to select directory:", err);
@@ -651,6 +688,7 @@ function App() {
                   return (
                     <div
                       key={game.id}
+                      title={game.description ? `${game.title}\n\n${game.description}` : game.title}
                       onClick={async () => {
                         try {
                           const fileHandle = await dirHandle?.getFileHandle(game.fileName);
@@ -665,7 +703,7 @@ function App() {
                           console.error("Failed to load game file", err);
                         }
                       }}
-                      className={`relative w-[130px] h-[145px] shrink-0 bg-[#b5b5b5] rounded-t-xl rounded-b-sm border-2 border-[#8c8c8c] border-b-[6px] shadow-[0_8px_15px_rgba(0,0,0,0.3),inset_0_4px_6px_rgba(255,255,255,0.6),inset_-2px_-4px_6px_rgba(0,0,0,0.3)] cursor-pointer hover:shadow-[0_15px_25px_rgba(0,0,0,0.5)] transition-all duration-300 flex flex-col pt-2 px-2 pb-3 texture-plastic ${activeGame?.metadata.id === game.id ? 'shadow-[0_15px_25px_rgba(0,0,0,0.5)] border-[#a61022] ring-2 ring-[#a61022]' : ''}`}
+                      className={`relative w-[130px] h-[145px] shrink-0 bg-[#b5b5b5] rounded-t-xl rounded-b-sm border-2 border-[#8c8c8c] border-b-[6px] shadow-[0_8px_15px_rgba(0,0,0,0.3),inset_0_4px_6px_rgba(255,255,255,0.6),inset_-2px_-4px_6px_rgba(0,0,0,0.3)] cursor-pointer hover:shadow-[0_15px_25px_rgba(0,0,0,0.5)] transition-all duration-300 flex flex-col pt-2 px-2 pb-3 texture-plastic group ${activeGame?.metadata.id === game.id ? 'shadow-[0_15px_25px_rgba(0,0,0,0.5)] border-[#a61022] ring-2 ring-[#a61022]' : ''}`}
                     >
                       {/* Top Physical Grooves (Cartridge Grip) */}
                       <div className="absolute top-0 left-0 right-0 h-4 flex justify-between px-4 opacity-50">
@@ -718,8 +756,8 @@ function App() {
 
                           {/* Authentic Title Footer */}
                           <div className="absolute bottom-0 left-0 right-0 bg-white/95 px-2 flex justify-between items-center z-20 border-t-2 border-[#a61022] shadow-[0_-2px_5px_rgba(0,0,0,0.3)]">
-                            <span className="font-black text-[8px] uppercase tracking-widest text-black truncate">{game.platform} GAME PAK</span>
-                            <span className="font-black text-[6px] text-black border border-black px-0.5 rounded-sm tabular-nums">DMG</span>
+                            <span className="font-black text-[8px] uppercase tracking-widest text-[#222] truncate">{game.platform} GAME PAK</span>
+                            <span className="font-black text-[6px] text-[#a61022] border border-[#a61022] px-0.5 rounded-sm tabular-nums tracking-widest">{game.releaseYear || 'SYS'}</span>
                           </div>
                         </div>
                       </div>

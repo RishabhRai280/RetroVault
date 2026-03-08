@@ -68,6 +68,27 @@ export interface GameMetadata {
      * the UI handles this gracefully with an `onError` handler that removes the img element.
      */
     boxArtUrl?: string;
+
+    /**
+     * A short summary text of the game's plot or mechanics.
+     * Pulled asynchronously via a metadata scraping service (e.g., Wikipedia/IGDB).
+     */
+    description?: string;
+
+    /**
+     * The original release year as a string (e.g., "1996").
+     */
+    releaseYear?: string;
+
+    /**
+     * The publishing or developing studio.
+     */
+    developer?: string;
+
+    /**
+     * Average user/critic rating scaled from 0.0 to 10.0.
+     */
+    rating?: number;
 }
 
 /**
