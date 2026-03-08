@@ -339,6 +339,9 @@ export interface KeyBindings {
     b: string;      // Default: 'z' (SNES layout: left-side button = B)
     start: string;  // Default: 'enter'
     select: string; // Default: 'shift'
+    rewind: string;      // Default: 'backspace'
+    fastForward: string; // Default: 'space'
+    fullScreen: string;  // Default: 'f'
 }
 
 /**
@@ -397,7 +400,7 @@ export interface UserSettings {
  * - X=A, Z=B matches ZSNES and other SNES-era convention
  * - Enter=Start, Shift=Select are near-universal
  */
-const DEFAULT_SETTINGS: UserSettings = {
+export const DEFAULT_SETTINGS: UserSettings = {
     volume: 1.0,
     crtFilterEnabled: false,
     scanlinesEnabled: false,
@@ -410,7 +413,10 @@ const DEFAULT_SETTINGS: UserSettings = {
         a: 'x',
         b: 'z',
         start: 'enter',
-        select: 'shift'
+        select: 'shift',
+        rewind: 'backspace',
+        fastForward: 'space',
+        fullScreen: 'f'
     },
     casingTheme: {
         type: 'classic',

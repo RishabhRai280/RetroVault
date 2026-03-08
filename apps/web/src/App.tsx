@@ -4,7 +4,7 @@ import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizo
 import { Nostalgist } from 'nostalgist';
 import { scanDirectory } from '@retrovault/core';
 import type { GameMetadata } from '@retrovault/core';
-import { SettingsStorage, PlayHistoryStorage, SaveStateStorage, type UserSettings, type KeyBindings, type PlayHistory, type SaveStateMetadata } from '@retrovault/db';
+import { SettingsStorage, PlayHistoryStorage, SaveStateStorage, DEFAULT_SETTINGS, type UserSettings, type KeyBindings, type PlayHistory, type SaveStateMetadata } from '@retrovault/db';
 import { EmulatorConsole } from './components/GameBoy/EmulatorConsole';
 import './index.css';
 
@@ -553,14 +553,14 @@ function App() {
               <p className="text-xs text-[#555] mb-4 text-center">Click a button, then press desired keyboard key.</p>
 
               <div className="grid grid-cols-2 gap-4">
-                {(['up', 'down', 'left', 'right', 'a', 'b', 'start', 'select'] as const).map(keyAction => (
+                {(['up', 'down', 'left', 'right', 'a', 'b', 'start', 'select', 'rewind', 'fastForward', 'fullScreen'] as const).map(keyAction => (
                   <div key={keyAction} className="flex justify-between items-center bg-[#b5b2a3] p-2 rounded-md shadow-inner border border-[#8c897d]">
                     <span className="uppercase tracking-widest text-[#4a4b52]">{keyAction}</span>
                     <button
                       onClick={() => setListeningKey(keyAction)}
                       className={`min-w-[50px] px-3 py-1 rounded shadow-md border-b-2 active:border-b-0 active:translate-y-[2px] transition-all uppercase ${listeningKey === keyAction ? 'bg-[#39ff14] text-black border-[#228800] ring-2 ring-[#39ff14]/50' : 'bg-[#1a1a1a] text-[#39ff14] border-black'}`}
                     >
-                      {listeningKey === keyAction ? '___' : userSettings?.keyBindings?.[keyAction] || '...'}
+                      {listeningKey === keyAction ? '___' : userSettings?.keyBindings?.[keyAction] || DEFAULT_SETTINGS.keyBindings[keyAction] || '...'}
                     </button>
                   </div>
                 ))}
@@ -568,7 +568,12 @@ function App() {
             </div>
 
             <div className="mt-8 flex justify-center">
-              <Button variant="primary" onClick={() => { setIsKeyBindingModalOpen(false); setListeningKey(null); }} className="w-full py-3 bg-[#1a1a1a] text-[var(--retro-neon)] border-2 border-[#333] shadow-md hover:bg-[#222]">DONE</Button>
+              <button 
+                onClick={() => { setIsKeyBindingModalOpen(false); setListeningKey(null); }} 
+                className="w-full py-3 bg-[#1a1a1a] text-[var(--retro-neon)] border-[3px] border-[var(--retro-neon)] shadow-[4px_4px_0_rgba(0,0,0,0.8)] active:translate-y-1 active:shadow-none hover:bg-[var(--retro-neon)] hover:text-black font-black uppercase tracking-widest transition-all rounded"
+              >
+                DONE
+              </button>
             </div>
           </Card>
         </div>

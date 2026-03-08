@@ -324,8 +324,9 @@ export function EmulatorConsole({ gameId, gameTitle, romFile, platform, volume, 
                         rewind_enable: true,                    // Enable rewind buffer
                         rewind_buffer_size: 10485760,           // 10MB rewind buffer
                         rewind_granularity: 2,                  // Save state every 2 frames for rewind
-                        input_rewind: 'backspace',              // Rewind hotkey
-                        input_hold_fast_forward: 'space',       // Fast-Forward hotkey
+                        input_rewind: currentBindings?.rewind || 'backspace',
+                        input_hold_fast_forward: currentBindings?.fastForward || 'space',
+                        input_toggle_fullscreen: currentBindings?.fullScreen || 'f',
                         ...(currentBindings ? {
                             // Map our UI key binding names to libretro retroarch config keys
                             input_player1_up: currentBindings.up,
