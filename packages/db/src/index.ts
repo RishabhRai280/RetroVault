@@ -379,6 +379,8 @@ export interface UserSettings {
     crtFilterEnabled: boolean;
     /** Enable the horizontal scanline overlay on the emulator canvas. */
     scanlinesEnabled: boolean;
+    /** Enable short vibrations on button press if the device supports it */
+    hapticFeedbackEnabled: boolean;
     /**
      * Active color theme for the UI accent colors.
      * Controls the `--retro-neon` and `--retro-neon-dim` CSS custom properties.
@@ -404,6 +406,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
     volume: 1.0,
     crtFilterEnabled: false,
     scanlinesEnabled: false,
+    hapticFeedbackEnabled: true,
     colorTheme: 'arcade-neon',
     keyBindings: {
         up: 'up',

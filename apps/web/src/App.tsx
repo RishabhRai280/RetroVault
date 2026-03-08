@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ChangeEvent, type SyntheticEvent } from 'react';
-import { Button, Card } from '@retrovault/ui';
+import { Card } from '@retrovault/ui';
 import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizontal, X, Menu, Maximize, FastForward, Rewind } from 'lucide-react';
 import { Nostalgist } from 'nostalgist';
 import { scanDirectory } from '@retrovault/core';
@@ -213,6 +213,9 @@ function App() {
   };
 
   const simulateKeyDown = (button: string) => {
+    if (userSettings?.hapticFeedbackEnabled && navigator?.vibrate) {
+      navigator.vibrate(10); // 10ms short vibration for tactile click
+    }
     if (emulatorInstance) {
       emulatorInstance.pressDown(button);
       const canvas = document.querySelector('#emulator-view canvas') as HTMLCanvasElement;
@@ -1138,6 +1141,17 @@ function App() {
                 </label>
               </div>
 
+              {/* Haptic Toggle */}
+              <div className="flex items-center justify-between bg-[#b5b2a3] p-2.5 rounded-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] border border-[#8c897d] mt-[-4px]">
+                <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider flex items-center gap-1">HAPTIC.FB</span>
+                <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
+                  <input type="checkbox" className="sr-only peer" checked={userSettings?.hapticFeedbackEnabled || false} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSettings({ hapticFeedbackEnabled: e.target.checked })} />
+                  <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-t-0 after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]">
+                    <div className="absolute inset-x-0 bottom-[-4px] h-[4px] bg-[#ff0000] z-0 peer-checked:opacity-100 opacity-0 transition-opacity"></div>
+                  </div>
+                </label>
+              </div>
+
             </div>
           </Card>
         </aside>
@@ -1443,6 +1457,15 @@ function App() {
                 <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">DISPLAY.SCL</span>
                 <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
                   <input type="checkbox" className="sr-only peer" checked={userSettings?.scanlinesEnabled || false} onChange={(e: ChangeEvent<HTMLInputElement>) => updateSettings({ scanlinesEnabled: e.target.checked })} />
+                  <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]"></div>
+                </label>
+              </div>
+
+              {/* Haptic Toggle */}
+              <div className="flex items-center justify-between bg-[#b5b2a3] p-3 rounded-md border border-[#8c897d]">
+                <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">HAPTIC.FB</span>
+                <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
+                  <input type="checkbox" className="sr-only peer" checked={userSettings?.hapticFeedbackEnabled || false} onChange={(e: ChangeEvent<HTMLInputElement>) => updateSettings({ hapticFeedbackEnabled: e.target.checked })} />
                   <div className="w-14 h-7 bg-[#1a1a1a] shadow-inner rounded-sm peer peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[-2px] after:left-[-2px] after:bg-gradient-to-b after:from-[#fff] after:to-[#b8b8b8] after:border-[#333] after:border-x after:border-b-[4px] after:rounded-sm after:h-8 after:w-7 after:transition-all after:shadow-[0_3px_5px_rgba(0,0,0,0.5)]"></div>
                 </label>
               </div>
