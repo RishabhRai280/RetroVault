@@ -38,6 +38,41 @@ import { SettingsStorage, PlayHistoryStorage, SaveStateStorage, type UserSetting
 import { AlertTriangle, PowerOff } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Web Audio API Intercept for Live Volume Control
+// ─────────────────────────────────────────────────────────────────────────────
+// WHY: Nostalgist/RetroArch only reads `audio_volume` config on initial boot.
+// To achieve instantly responsive slider volume without restarting the game,
+// we intercept the Web Audio `connect()` method globally to insert a Master Gain Node
+// just before the speakers (AudioDestinationNode).
+
+if (typeof window !== 'undefined' && !(window as any).__rvAudioIntercepted && window.AudioNode) {
+    (window as any).__rvAudioIntercepted = true;
+    const origConnect = window.AudioNode.prototype.connect;
+    
+    // Override the connect method to inject our gain node
+    (window as any).AudioNode.prototype.connect = function(this: AudioNode, destination: any, outputIndex?: number, inputIndex?: number): any {
+        // If this node is trying to connect to the final speakers
+        if (destination === this.context.destination) {
+            const ctx = this.context as any;
+            if (!ctx.__rvMasterGain) {
+                // Create our interceptor node
+                ctx.__rvMasterGain = ctx.createGain();
+                // Set initial volume
+                ctx.__rvMasterGain.gain.value = (window as any).__rvCurrentVolume ?? 1;
+                // Connect our gain node to the speakers
+                origConnect.call(ctx.__rvMasterGain, destination);
+                // Expose globally for the React component to tweak
+                (window as any).__rvMasterGainNode = ctx.__rvMasterGain;
+            }
+            // Route the original signal into our gain node instead
+            return origConnect.apply(this, [ctx.__rvMasterGain, outputIndex, inputIndex].filter(x => x !== undefined) as any);
+        }
+        // Passthrough for all other internal audio connections
+        return origConnect.apply(this, arguments as any);
+    };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -193,6 +228,14 @@ export function EmulatorConsole({ gameId, gameTitle, romFile, platform, volume, 
         keyBindingsRef.current = keyBindings;
         onLogRef.current = onLog;
         onReadyRef.current = onReady;
+
+        // Keep our global Web Audio intercept sync'd with the latest volume prop
+        (window as any).__rvCurrentVolume = volume;
+        if ((window as any).__rvMasterGainNode) {
+            // Apply a tiny time constant to prevent audio "popping" during hard slider movements
+            const gainNode = (window as any).__rvMasterGainNode as GainNode;
+            gainNode.gain.setTargetAtTime(Math.max(0, volume), gainNode.context.currentTime, 0.05);
+        }
     }, [volume, keyBindings, onLog, onReady]);
 
     // ── Core Resolver ─────────────────────────────────────────────────────────
@@ -257,16 +300,7 @@ export function EmulatorConsole({ gameId, gameTitle, romFile, platform, volume, 
                 // Emit to the System Logs panel in App.tsx
                 if (onLogRef.current) onLogRef.current(`Initializing core [${resolveCore().core}] for ${platform}...`);
 
-                /**
-                 * Convert the linear (0–1) volume slider value to dB scale for libretro.
-                 * libretro's `audio_volume` config expects decibels, where:
-                 *   0dB = full volume, -60dB ≈ inaudible, -Infinity = muted
-                 * Formula: dB = log10(volume) * 20
-                 * volume=1.0 → 0dB, volume=0.5 → ~-6dB, volume=0.0 → -60dB (clamped)
-                 */
-                const currentVolume = volumeRef.current;
-                const volumeDB = currentVolume > 0 ? Math.log10(Math.max(0.01, currentVolume)) * 20 : -60;
-                const currentBindings = keyBindingsRef.current; // Read from ref, not prop
+                const currentBindings = keyBindingsRef.current;
                 const resolvedCore = resolveCore();
 
                 /**
@@ -283,7 +317,8 @@ export function EmulatorConsole({ gameId, gameTitle, romFile, platform, volume, 
                     core: resolvedCore.core,        // e.g., 'mgba' for GBA
                     element: canvasRef.current!,    // The <canvas> DOM element to render into
                     retroarchConfig: {
-                        audio_volume: volumeDB,                 // Converted from 0-1 slider to dB
+                        // NOTE: audio_volume is INTENTIONALLY OMITTED here so RetroArch runs at default 0dB internal volume.
+                        // Actual volume scaling is handled safely by our WebAudio Master Gain interceptor above.
                         savestate_auto_save: true,              // Libretro internal auto-save (separate from ours)
                         savestate_auto_load: true,              // Libretro internal auto-load on boot
                         rewind_enable: true,                    // Enable rewind buffer

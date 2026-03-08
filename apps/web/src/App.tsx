@@ -1057,13 +1057,13 @@ function App() {
               <label className="flex flex-col gap-2">
                 <div className="flex justify-between text-xs font-black uppercase text-[#4a4b52] tracking-wider">
                   <span>AUDIO.VOL</span>
-                  <span className="text-[var(--retro-neon)] bg-[#1a1a1a] px-2 py-0.5 rounded shadow-inner font-mono">{Math.round((userSettings?.volume || 1) * 100)}%</span>
+                  <span className="text-[var(--retro-neon)] bg-[#1a1a1a] px-2 py-0.5 rounded shadow-inner font-mono">{Math.round((userSettings?.volume ?? 1) * 100)}%</span>
                 </div>
                 <div className="px-3 py-2 bg-[#b5b2a3] rounded-lg shadow-[inset_0_3px_6px_rgba(0,0,0,0.25)] border border-[#8c897d]">
                   <input
                     type="range"
                     min="0" max="1" step="0.05"
-                    value={userSettings?.volume || 1}
+                    value={userSettings?.volume ?? 1}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => updateSettings({ volume: parseFloat(e.target.value) })}
                     className="slider-mechanical w-full min-w-full block"
                   />
@@ -1380,11 +1380,11 @@ function App() {
               <label className="flex flex-col gap-2">
                 <div className="flex justify-between text-xs font-black uppercase text-[#4a4b52] tracking-wider">
                   <span>AUDIO.VOL</span>
-                  <span className="text-[var(--retro-neon)] bg-[#1a1a1a] px-2 py-0.5 rounded font-mono">{Math.round((userSettings?.volume || 1) * 100)}%</span>
+                  <span className="text-[var(--retro-neon)] bg-[#1a1a1a] px-2 py-0.5 rounded font-mono">{Math.round((userSettings?.volume ?? 1) * 100)}%</span>
                 </div>
                 <div className="px-3 py-2 bg-[#b5b2a3] rounded-lg shadow-inner border border-[#8c897d]">
                   <input type="range" min="0" max="1" step="0.05"
-                    value={userSettings?.volume || 1}
+                    value={userSettings?.volume ?? 1}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => updateSettings({ volume: parseFloat(e.target.value) })}
                     className="slider-mechanical w-full block"
                   />
