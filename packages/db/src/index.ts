@@ -342,6 +342,30 @@ export interface KeyBindings {
 }
 
 /**
+ * Definition of the physical look of the game boy console.
+ */
+export interface CasingTheme {
+    /** The style chosen by the user */
+    type: 'classic' | 'solid' | 'gradient' | 'image';
+    
+    /** Used when type is 'classic' */
+    classicId: 'plastic-gray' | 'atomic-purple' | 'clear' | 'yellow';
+    
+    /** Used when type is 'solid' */
+    solidColor: string;
+    
+    /** Used when type is 'gradient' */
+    gradient: {
+        colorFrom: string;
+        colorTo: string;
+        direction: 'to right' | 'to bottom' | 'to bottom right' | 'to bottom left' | 'to top right' | 'to top left';
+    };
+    
+    /** Used when type is 'image' */
+    imageUrl: string;
+}
+
+/**
  * Complete set of user-configurable preferences for RetroVault.
  * Stored as a single JSON object under key `user_settings` in `settingsStore`.
  */
@@ -362,6 +386,8 @@ export interface UserSettings {
     colorTheme: 'arcade-neon' | 'gameboy-dmg' | 'virtual-boy';
     /** Configurable keyboard bindings for all 8 emulator input actions. */
     keyBindings: KeyBindings;
+    /** Describes the physical material, color, and texture of the console body. */
+    casingTheme: CasingTheme;
 }
 
 /**
@@ -385,6 +411,17 @@ const DEFAULT_SETTINGS: UserSettings = {
         b: 'z',
         start: 'enter',
         select: 'shift'
+    },
+    casingTheme: {
+        type: 'classic',
+        classicId: 'plastic-gray',
+        solidColor: '#b5b5b5',
+        gradient: {
+            colorFrom: '#e66465',
+            colorTo: '#9198e5',
+            direction: 'to bottom right'
+        },
+        imageUrl: ''
     }
 };
 

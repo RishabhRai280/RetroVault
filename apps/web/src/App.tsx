@@ -32,6 +32,12 @@ function App() {
   const [listeningKey, setListeningKey] = useState<keyof KeyBindings | null>(null);
   const [playHistory, setPlayHistory] = useState<Record<string, PlayHistory>>({});
 
+  // Phase 7 specific states (Casing)
+  const [isCasingModalOpen, setIsCasingModalOpen] = useState(false);
+  const defaultCasingTheme: import('@retrovault/db').CasingTheme = { type: 'classic', classicId: 'plastic-gray', solidColor: '#b5b5b5', gradient: { colorFrom: '#e66465', colorTo: '#9198e5', direction: 'to bottom right' }, imageUrl: '' };
+  const currentCasing = userSettings?.casingTheme || defaultCasingTheme;
+  const [tempCasing, setTempCasing] = useState(currentCasing);
+
   // Phase 5 specific states
   const [systemLogs, setSystemLogs] = useState<{ time: Date; message: string }[]>([]);
   const [saveStates, setSaveStates] = useState<SaveStateMetadata[]>([]);
@@ -281,12 +287,253 @@ function App() {
     return matchesSearch && matchesPlatform;
   });
 
+  // --- Dynamic Casing Styles ---
+  const getCasingStyles = (casing: typeof currentCasing): React.CSSProperties => {
+    if (casing.type === 'solid') {
+      return { backgroundColor: casing.solidColor };
+    }
+    if (casing.type === 'gradient') {
+      return { backgroundImage: `linear-gradient(${casing.gradient.direction}, ${casing.gradient.colorFrom}, ${casing.gradient.colorTo})` };
+    }
+    if (casing.type === 'image') {
+      return { backgroundImage: `url(${casing.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#333' };
+    }
+    return {}; // classic handles by CSS classes
+  };
+
+  const getCasingClasses = (casing: typeof currentCasing): string => {
+    if (casing.type === 'classic') {
+      if (casing.classicId === 'atomic-purple') return 'casing-atomic-purple text-[#ffd0ff]';
+      if (casing.classicId === 'clear') return 'casing-clear text-[#333]';
+      if (casing.classicId === 'yellow') return 'casing-yellow text-[#555]';
+      return 'bg-gradient-to-br from-[#f2f2f0] to-[#cdc9b8]'; // plastic-gray
+    }
+    return 'text-[#fff] border-white/20'; // Base classes for custom dark colors
+  };
+
   return (
     <div className={`flex flex-col h-[100dvh] w-full bg-[#111] overflow-hidden text-[#333] theme-${userSettings?.colorTheme || 'arcade-neon'} ${userSettings?.crtFilterEnabled ? 'crt-filter' : ''} ${userSettings?.scanlinesEnabled ? 'scanlines' : ''}`}>
 
       {/* Global CSS Overlays */}
       {userSettings?.crtFilterEnabled && <div className="fixed inset-0 pointer-events-none rounded-[10%] shadow-[inset_0_0_100px_rgba(0,0,0,0.5)] z-50"></div>}
       {userSettings?.scanlinesEnabled && <div className="fixed inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-50 opacity-20"></div>}
+
+      {/* Casing Color Modal */}
+      {isCasingModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in text-[#333]">
+          <Card className="w-full max-w-4xl p-6 md:p-8 bg-[#e0ddcf] border-[4px] border-[#b5b2a3] shadow-[0_20px_40px_rgba(0,0,0,0.8),inset_0_4px_10px_rgba(255,255,255,0.5)] !rounded-xl relative texture-plastic flex flex-col md:flex-row gap-8">
+            <button
+              onClick={() => setIsCasingModalOpen(false)}
+              className="absolute top-4 right-4 text-[#8a1955] hover:text-[#5a000a] bg-black/5 rounded-full p-1 transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
+
+            {/* Left Col: Controls */}
+            <div className="flex-1 flex flex-col pt-2 min-w-0">
+              <h2 className="text-xl font-black italic text-[#29225c] border-b-4 border-[#c0bdae] pb-2 mb-6 tracking-wider uppercase truncate">Shell Customizer</h2>
+
+              {/* Type Tabs */}
+              <div className="flex gap-2 mb-6 bg-[#e0ddcf] rounded">
+                {(['classic', 'solid', 'gradient', 'image'] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setTempCasing(prev => ({ ...prev, type }))}
+                    className={`flex-1 py-3 px-1 text-[8px] sm:text-[10px] font-black uppercase tracking-widest rounded transition-all cursor-pointer ${tempCasing.type === type ? 'bg-[#a61022] text-white border-[3px] border-[#5a000a] shadow-[inset_0_2px_5px_rgba(0,0,0,0.5)] translate-y-[2px]' : 'bg-[#e0ddcf] text-[#4a4b52] border-[3px] border-[#b5b2a3] hover:bg-[#b5b2a3] border-b-[5px] active:translate-y-[2px] active:border-b-[3px] shadow-md'}`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+
+              {/* Dynamic Controls based on type */}
+              <div className="flex-1 overflow-y-auto mb-4 custom-scrollbar pr-2 min-h-[200px]">
+
+                {tempCasing.type === 'classic' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: 'plastic-gray', name: 'Plastic Gray', color: '#f2f2f0' },
+                      { id: 'atomic-purple', name: 'Atomic Purple', color: '#64308c' },
+                      { id: 'clear', name: 'Clear Glass', color: '#e6e6e6' },
+                      { id: 'yellow', name: 'Electric Yellow', color: '#f7d51d' }
+                    ].map(style => (
+                      <button
+                        key={style.id}
+                        onClick={() => setTempCasing(prev => ({ ...prev, classicId: style.id as any }))}
+                        className={`p-3 rounded border-[3px] flex items-center justify-between transition-all cursor-pointer ${tempCasing.classicId === style.id ? 'bg-[#a8a598] border-[#a61022] shadow-[inset_0_2px_5px_rgba(0,0,0,0.3)] translate-y-[2px]' : 'bg-[#e0ddcf] border-[#b5b2a3] hover:bg-[#b5b2a3] border-b-[5px] shadow-md active:translate-y-[2px] active:border-b-[3px]'}`}
+                      >
+                        <span className="text-[8px] sm:text-[10px] uppercase font-black tracking-widest text-[#29225c] text-left leading-tight break-words pr-2">{style.name}</span>
+                        <div className="w-6 h-6 rounded-sm border-2 border-[#333] shadow-inner shrink-0" style={{ backgroundColor: style.color }}></div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {tempCasing.type === 'solid' && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-black uppercase text-[#4a4b52] tracking-wider mb-1">Pick Solid Color</label>
+                    <div className="flex items-center gap-4 bg-[#b5b2a3] p-4 rounded border-[3px] border-[#8c897d] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+                      <input
+                        type="color"
+                        value={tempCasing.solidColor}
+                        onChange={(e) => setTempCasing(prev => ({ ...prev, solidColor: e.target.value }))}
+                        className="w-12 h-12 p-0 border-2 border-[#333] cursor-pointer rounded-sm"
+                      />
+                      <span className="font-mono font-bold text-sm text-[#333]">{tempCasing.solidColor}</span>
+                    </div>
+                  </div>
+                )}
+
+                {tempCasing.type === 'gradient' && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-black uppercase text-[#4a4b52] tracking-wider mb-1">Gradient Configuration</label>
+                    <div className="flex flex-col gap-4 bg-[#b5b2a3] p-4 rounded border-[3px] border-[#8c897d] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+                      <div className="flex items-center gap-6">
+                        <div className="flex flex-col gap-2 relative">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-[#4a4b52]">Color 1</span>
+                          <input type="color" value={tempCasing.gradient.colorFrom} onChange={(e) => setTempCasing(prev => ({ ...prev, gradient: { ...prev.gradient, colorFrom: e.target.value } }))} className="w-10 h-10 p-0 border-2 border-[#333] cursor-pointer rounded-sm absolute left-[65px] top-1/2 -translate-y-1/2" />
+                        </div>
+                        <div className="ml-10 flex flex-col gap-2 relative">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-[#4a4b52]">Color 2</span>
+                          <input type="color" value={tempCasing.gradient.colorTo} onChange={(e) => setTempCasing(prev => ({ ...prev, gradient: { ...prev.gradient, colorTo: e.target.value } }))} className="w-10 h-10 p-0 border-2 border-[#333] cursor-pointer rounded-sm absolute left-[65px] top-1/2 -translate-y-1/2" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 mt-4">
+                        <span className="text-[8px] font-black uppercase tracking-wider text-[#4a4b52]">Direction</span>
+                        <div className="relative">
+                          <select
+                            value={tempCasing.gradient.direction}
+                            onChange={(e) => setTempCasing(prev => ({ ...prev, gradient: { ...prev.gradient, direction: e.target.value as any } }))}
+                            className="bg-[#1a1a1a] border-2 border-[#444] text-[var(--retro-neon)] p-3 rounded-md text-[10px] uppercase font-bold w-full appearance-none pr-8 cursor-pointer shadow-[inset_0_2px_5px_rgba(0,0,0,0.8)] focus:outline-none"
+                          >
+                            <option value="to right">Left to Right</option>
+                            <option value="to bottom">Top to Bottom</option>
+                            <option value="to bottom right">Diagonal (Top-Left to Bottom-Right)</option>
+                            <option value="to top right">Diagonal (Bottom-Left to Top-Right)</option>
+                          </select>
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#555]">▼</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {tempCasing.type === 'image' && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-black uppercase text-[#4a4b52] tracking-wider mb-1">Upload Cover Image</label>
+                    <div className="flex flex-col items-center justify-center gap-4 bg-[#b5b2a3] p-8 rounded border-[3px] border-dashed border-[#8c897d] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+                      <label className="cursor-pointer bg-[#a61022] text-white border-[3px] border-[#5a000a] px-4 py-3 shadow-[0_4px_8px_rgba(0,0,0,0.5),inset_0_2px_5px_rgba(255,255,255,0.2)] transition-all hover:bg-[#800a16] active:translate-y-[2px] active:shadow-inner text-[10px] sm:text-xs font-black uppercase tracking-widest text-center rounded">
+                        Select File...
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (e) => setTempCasing(prev => ({ ...prev, imageUrl: e.target?.result as string }));
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {tempCasing.imageUrl ? (
+                        <p className="text-[9px] text-[#29225c] font-black uppercase tracking-widest mt-2 bg-[#e0ddcf] px-2 py-1 rounded shadow-sm">Cover Loaded</p>
+                      ) : (
+                        <p className="text-[9px] text-[#4a4b52] font-black uppercase tracking-widest mt-2">No file selected</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-4 flex gap-4 pt-4 border-t-4 border-[#c0bdae] shrink-0">
+                <button onClick={() => setIsCasingModalOpen(false)} className="flex-1 py-3 bg-[#e0ddcf] border-[3px] border-[#b5b2a3] text-[#4a4b52] shadow-md hover:bg-[#c0bdae] active:translate-y-[2px] active:border-b-[3px] rounded text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">Cancel</button>
+                <button onClick={() => { updateSettings({ casingTheme: tempCasing }); setIsCasingModalOpen(false); }} className="flex-1 py-3 bg-[#1a1a1a] text-[var(--retro-neon)] border-[3px] border-[#333] shadow-[0_4px_8px_rgba(0,0,0,0.5)] hover:bg-[#222] active:translate-y-[2px] active:shadow-inner rounded text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">Save Mod</button>
+              </div>
+            </div>
+
+            {/* Right Col: Live Preview */}
+            <div className="w-full md:w-[220px] shrink-0 border-t-4 md:border-t-0 md:border-l-4 border-[#c0bdae] pt-6 md:pt-0 md:pl-8 flex flex-col items-center justify-center">
+              <h3 className="text-[10px] font-black text-[#8c897d] uppercase tracking-widest mb-6 min-w-max">Live Preview</h3>
+              {/* Mini Game Boy Shell */}
+              <div
+                className={`w-[160px] h-[260px] rounded-tl-md rounded-tr-md rounded-bl-xl rounded-br-[3rem] shadow-2xl border-b-[6px] border-r-[4px] border-black/20 flex flex-col items-center pt-4 px-3 relative texture-plastic transition-all duration-500 ${getCasingClasses(tempCasing)}`}
+                style={getCasingStyles(tempCasing)}
+              >
+                {/* Internal Bezel / Screen Area */}
+                <div className="w-full h-[105px] bg-[#61626a] rounded-t-sm rounded-b-[1.5rem] p-1.5 flex flex-col items-center relative shadow-[inset_0_4px_8px_rgba(0,0,0,0.6)] z-10 border-b-2 border-r border-[#444]">
+                  {/* Screen Labels & Decorative Lines */}
+                  <div className="w-full flex justify-between items-center px-1 mb-0.5">
+                    <div className="flex gap-0.5 h-1 items-center">
+                      <div className="w-6 h-[1px] bg-[#a61022]"></div>
+                      <div className="w-6 h-[1px] bg-[#29225c]"></div>
+                    </div>
+                    <div className="flex gap-0.5 h-1 items-center">
+                      <div className="w-6 h-[1px] bg-[#29225c]"></div>
+                      <div className="w-6 h-[1px] bg-[#a61022]"></div>
+                    </div>
+                  </div>
+
+                  <div className="w-[85%] h-[75px] bg-[#8bac0f] rounded-sm shadow-inner relative overflow-hidden ring-1 ring-[#555] flex items-center justify-center">
+                    <div className="absolute inset-0 opacity-20 z-10 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABZJREFUeNpi2rV7928bEJAxcAEEAAgwADoEA3hF59UIAAAAAElFTkSuQmCC')] repeat mix-blend-multiply"></div>
+                  </div>
+                </div>
+
+                {/* Shell Logo */}
+                <div className="w-full flex justify-start pl-[5%] mt-2 mb-1 z-10">
+                  <span className={`italic font-sans font-black text-[9px] tracking-wider leading-none ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'text-[#372d80]' : 'text-white/60'}`}>Nintendo <span className="text-[11px]">GAME BOY</span><span className="text-[4px] align-top">TM</span></span>
+                </div>
+
+                {/* Controls Container */}
+                <div className="w-full flex-1 relative mt-1 z-10 select-none">
+
+                  {/* Mini D-Pad */}
+                  <div className="absolute top-2 left-1 w-12 h-12 flex items-center justify-center">
+                    <div className="w-10 h-3 bg-[#1c1c1c] absolute rounded-[1px] shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
+                    <div className="w-3 h-10 bg-[#1c1c1c] absolute rounded-[1px] shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#111] absolute shadow-inner"></div>
+                  </div>
+
+                  {/* Mini A/B Buttons */}
+                  <div className="absolute top-5 right-1 w-[55px] h-[25px]">
+                    {/* Recessed Pill */}
+                    <div className="absolute inset-0 bg-black/10 rounded-full transform -rotate-[25deg]"></div>
+                    <div className="absolute inset-0 flex justify-between items-center px-0.5 transform -rotate-[25deg]">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="w-5 h-5 rounded-full bg-[#8c1f54] shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_-1px_-1px_2px_rgba(0,0,0,0.5)] border-b-2 border-[#4a0827]"></div>
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="w-5 h-5 rounded-full bg-[#8c1f54] shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_-1px_-1px_2px_rgba(0,0,0,0.5)] border-b-2 border-[#4a0827]"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mini Select/Start */}
+                  <div className="absolute bottom-6 left-5 flex gap-3 transform -rotate-[15deg] opacity-90">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <div className="w-5 h-1.5 bg-[#4a4d52] rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <div className="w-5 h-1.5 bg-[#4a4d52] rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
+                    </div>
+                  </div>
+
+                  {/* Mini Speaker Grille */}
+                  <div className="absolute bottom-3 right-2 flex gap-1 transform -rotate-[25deg] opacity-50">
+                    <div className="w-1 h-8 bg-black/20 rounded-full shadow-inner"></div>
+                    <div className="w-1 h-8 bg-black/20 rounded-full shadow-inner"></div>
+                    <div className="w-1 h-8 bg-black/20 rounded-full shadow-inner"></div>
+                    <div className="w-1 h-8 bg-black/20 rounded-full shadow-inner"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
 
 
@@ -549,8 +796,9 @@ function App() {
 
           {/* Game Boy shell — JS-computed scale keeps all buttons accessible on any screen size */}
           <div
-            className="w-[490px] h-[860px] shrink-0 bg-gradient-to-br from-[#f2f2f0] to-[#cdc9b8] rounded-[2rem] sm:rounded-none sm:rounded-tl-2xl sm:rounded-tr-2xl sm:rounded-bl-[2.5rem] sm:rounded-br-[7rem] pt-8 sm:pt-6 pb-8 px-4 sm:px-6 flex flex-col items-center shadow-none sm:shadow-[0_30px_60px_rgba(0,0,0,0.6),inset_-5px_-5px_20px_rgba(0,0,0,0.1),inset_5px_5px_15px_rgba(255,255,255,0.8)] border-0 sm:border-b-[8px] sm:border-r-[4px] border-[#c0bdae] ring-1 ring-black/5 relative origin-center z-10 texture-plastic"
+            className={`w-[490px] h-[860px] shrink-0 rounded-[2rem] sm:rounded-none sm:rounded-tl-2xl sm:rounded-tr-2xl sm:rounded-bl-[2.5rem] sm:rounded-br-[7rem] pt-8 sm:pt-6 pb-8 px-4 sm:px-6 flex flex-col items-center shadow-none sm:shadow-[0_30px_60px_rgba(0,0,0,0.6),inset_-5px_-5px_20px_rgba(0,0,0,0.1),inset_5px_5px_15px_rgba(255,255,255,0.8)] border-0 sm:border-b-[8px] sm:border-r-[4px] ring-1 ring-black/5 relative origin-center z-10 texture-plastic ${getCasingClasses(currentCasing)}`}
             style={{
+              ...getCasingStyles(currentCasing),
               transform: `scale(${consoleScale})`,
               // Negative margins collapse the 490×860 layout box to the visual size.
               // Without these, the element still takes 490×860 of flow space even when shrunk.
@@ -560,7 +808,7 @@ function App() {
           >
 
             {/* Top Grooves */}
-            <div className="absolute top-0 left-4 right-4 h-6 border-b-2 border-t-2 border-[#c0bdae] opacity-50 shadow-inner"></div>
+            <div className={`absolute top-0 left-4 right-4 h-6 border-b-2 border-t-2 opacity-50 shadow-inner ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'border-[#c0bdae]' : 'border-black/20'}`}></div>
 
             {/* Power Switch Slider */}
             <div className="absolute top-0 left-10 w-20 h-4 bg-[#b5b2a3] rounded-b-md shadow-inner border-b border-x border-[#8c897d] flex items-end justify-center pb-0.5 cursor-pointer">
@@ -618,10 +866,10 @@ function App() {
             </div>
 
             {/* Authentic Logo */}
-            <div className="w-[90%] flex mt-2 mb-2 mx-auto justify-start pl-[5%] items-center">
-              <span className="text-[#372d80] font-black text-[10px] tracking-widest font-sans mr-1 mt-1 opacity-90">Nintendo</span>
-              <span className="text-[#372d80] font-black italic text-2xl tracking-widest font-sans">GAME BOY</span>
-              <span className="text-[#372d80] font-black text-[8px] ml-0.5 mt-0.5 align-top opacity-80">TM</span>
+            <div className="w-[90%] flex mt-2 mb-2 mx-auto justify-start pl-[5%] items-center z-20">
+              <span className={`font-black text-[10px] tracking-widest font-sans mr-1 mt-1 opacity-90 ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#372d80]' : 'text-current grayscale contrast-200 opacity-60'}`}>Nintendo</span>
+              <span className={`font-black italic text-2xl tracking-widest font-sans ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#372d80]' : 'text-current grayscale contrast-200 opacity-60'}`}>GAME BOY</span>
+              <span className={`font-black text-[8px] ml-0.5 mt-0.5 align-top opacity-80 ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#372d80]' : 'text-current grayscale contrast-200 opacity-60'}`}>TM</span>
             </div>
 
             {/* Console Bottom Area (Controls & Speakers) */}
@@ -848,6 +1096,18 @@ function App() {
                   className="w-full bg-[#1a1a1a] text-[var(--retro-neon)] hover:bg-[#222] border-2 border-[#444] p-2 rounded-md text-xs uppercase font-bold shadow-[inset_0_2px_5px_rgba(0,0,0,0.8)] transition-all cursor-pointer text-center tracking-widest"
                 >
                   Configure Mappings
+                </button>
+              </div>
+
+              {/* Shell Customization */}
+              <div className="flex flex-col gap-2 pb-2">
+                <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">SHELL.MOD</span>
+                <button
+                  type="button"
+                  onClick={() => setIsCasingModalOpen(true)}
+                  className="w-full bg-[#a61022] text-[#fff] hover:bg-[#800a16] border-[3px] border-[#5a000a] p-2 rounded shadow-[0_4px_10px_rgba(0,0,0,0.5),inset_0_2px_5px_rgba(255,255,255,0.2)] transition-all cursor-pointer text-center tracking-widest uppercase font-black text-[10px]"
+                >
+                  Customize Casing
                 </button>
               </div>
 
@@ -1154,6 +1414,14 @@ function App() {
                 <button onClick={() => setIsKeyBindingModalOpen(true)}
                   className="w-full bg-[#1a1a1a] text-[var(--retro-neon)] border-2 border-[#444] p-2.5 rounded-md text-xs uppercase font-bold tracking-widest"
                 >Configure Mappings</button>
+              </div>
+
+              {/* Shell Customization */}
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-black uppercase text-[#4a4b52] tracking-wider">SHELL.MOD</span>
+                <button onClick={() => { setMobileTab('library'); setIsMobileMenuOpen(false); setIsCasingModalOpen(true); }}
+                  className="w-full bg-[#a61022] text-white border-[3px] border-[#5a000a] p-2.5 rounded text-xs uppercase font-black tracking-widest shadow"
+                >Customize Casing</button>
               </div>
 
               {/* CRT Toggle */}
