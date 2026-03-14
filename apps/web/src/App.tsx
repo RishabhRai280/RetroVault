@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type ChangeEvent, type SyntheticEvent } from 'react';
 import { Card } from '@retrovault/ui';
-import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizontal, X, Menu, Maximize, FastForward, Rewind } from 'lucide-react';
+import { Gamepad2, Settings2, Library, Save, ScrollText, Activity, SlidersHorizontal, X, Menu, Maximize } from 'lucide-react';
 import { Nostalgist } from 'nostalgist';
 import { scanDirectory, fetchGameMetadata } from '@retrovault/core';
 import type { GameMetadata } from '@retrovault/core';
@@ -500,73 +500,83 @@ function App() {
               <h3 className="text-[10px] font-black text-[#8c897d] uppercase tracking-widest mb-6 min-w-max">Live Preview</h3>
               {/* Mini Game Boy Shell */}
               <div
-                className={`w-[160px] h-[260px] rounded-tl-md rounded-tr-md rounded-bl-xl rounded-br-[3rem] shadow-2xl border-b-[6px] border-r-[4px] border-black/20 flex flex-col items-center pt-4 px-3 relative texture-plastic transition-all duration-500 ${getCasingClasses(tempCasing)}`}
+                className={`w-[150px] h-[264px] rounded-tl-md rounded-tr-md rounded-bl-xl rounded-br-[3rem] shadow-2xl border-b-[5px] border-r-[4px] border-black/20 flex flex-col items-center pt-2 px-2 relative texture-plastic transition-all duration-500 overflow-hidden ${getCasingClasses(tempCasing)}`}
                 style={getCasingStyles(tempCasing)}
               >
-                {/* Internal Bezel / Screen Area */}
-                <div className="w-full h-[105px] bg-[#61626a] rounded-t-sm rounded-b-[1.5rem] p-1.5 flex flex-col items-center relative shadow-[inset_0_4px_8px_rgba(0,0,0,0.6)] z-10 border-b-2 border-r border-[#444]">
-                  {/* Screen Labels & Decorative Lines */}
-                  <div className="w-full flex justify-between items-center px-1 mb-0.5">
-                    <div className="flex gap-0.5 h-1 items-center">
-                      <div className="w-6 h-[1px] bg-[#a61022]"></div>
-                      <div className="w-6 h-[1px] bg-[#29225c]"></div>
+                {/* Texture Overlay */}
+                <div className="absolute inset-0 opacity-[0.04] pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiAvPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMDAwIiAvPjwvc3ZnPg==')] mix-blend-multiply z-0"></div>
+
+                {/* Hardware Area */}
+                <div className="absolute top-0 left-0 w-full z-10 flex flex-col items-center">
+                  <div className="w-full h-1 border-b-[0.5px] border-[#b5b3a6] opacity-50"></div>
+                  
+                  {/* Mini Rewind/FF Module */}
+                  <div className="w-full flex justify-end pr-3 mt-1.5 grayscale contrast-200 opacity-60">
+                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-black/30 shadow-inner">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#111]"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#111]"></div>
                     </div>
-                    <div className="flex gap-0.5 h-1 items-center">
-                      <div className="w-6 h-[1px] bg-[#29225c]"></div>
-                      <div className="w-6 h-[1px] bg-[#a61022]"></div>
+                  </div>
+                </div>
+
+                {/* Mini Bezel */}
+                <div className="w-[95%] h-[128px] bg-[#5c5d66] rounded-t-sm rounded-b-[1.8rem] p-1.5 flex flex-col items-center relative shadow-[inset_0_4px_8px_rgba(0,0,0,0.6)] z-10 border-b-[2px] border-r border-[#333] mt-5 shrink-0">
+                  {/* Bezel Labels */}
+                  <div className="w-[94%] flex flex-col items-center mb-1 gap-1 px-1 mt-0.5">
+                    <div className="w-full flex items-center justify-center gap-1">
+                      <div className="flex-1 h-[0.5px] bg-[#751125]"></div>
+                      <span className="text-[2.5px] font-black tracking-[0.2em] text-[#b8b8b8] uppercase">RETROVAULT • HIGH FIDELITY</span>
+                      <div className="flex-1 h-[0.5px] bg-[#751125]"></div>
+                    </div>
+                    <div className="w-full flex items-center justify-center gap-1 opacity-60">
+                      <div className="flex-1 h-[0.5px] bg-[#161c5c]"></div>
+                      <div className="w-[20px] h-0"></div>
+                      <div className="flex-1 h-[0.5px] bg-[#161c5c]"></div>
                     </div>
                   </div>
 
-                  <div className="w-[85%] h-[75px] bg-[#8bac0f] rounded-sm shadow-inner relative overflow-hidden ring-1 ring-[#555] flex items-center justify-center">
-                    <div className="absolute inset-0 opacity-20 z-10 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABZJREFUeNpi2rV7928bEJAxcAEEAAgwADoEA3hF59UIAAAAAElFTkSuQmCC')] repeat mix-blend-multiply"></div>
+                  {/* Scaled Screen Content */}
+                  <div className="w-[85%] h-[88px] bg-[#8bac0f] border-[1.5px] border-[#111] shadow-inner relative overflow-hidden ring-[0.5px] ring-[#555] rounded-[0.5px] mt-0.5">
+                    <div className="absolute inset-0 opacity-[0.1] bg-[linear-gradient(rgba(0,0,0,0.5)_1.5px,transparent_1.5px),linear-gradient(90deg,rgba(0,0,0,0.5)_1.5px,transparent_1.5px)] bg-[size:1.5px_1.5px]"></div>
                   </div>
                 </div>
 
                 {/* Shell Logo */}
-                <div className="w-full flex justify-start pl-[5%] mt-2 mb-1 z-10">
-                  <span className={`italic font-sans font-black text-[9px] tracking-wider leading-none ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'text-[#372d80]' : 'text-white/60'}`}>Nintendo <span className="text-[11px]">GAME BOY</span><span className="text-[4px] align-top">TM</span></span>
+                <div className="w-full flex justify-start pl-4 mt-2 mb-0.5 z-10 opacity-90 drop-shadow-[0_0.5px_0.5px_rgba(255,255,255,0.3)]">
+                  <span className={`font-sans font-bold text-[5px] tracking-tight ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'text-[#2b2270]' : 'text-current grayscale contrast-200'}`}>Nintendo <span className="italic font-black text-[7px] font-serif">GAME BOY</span><span className="text-[2px] align-top">TM</span></span>
                 </div>
 
                 {/* Controls Container */}
-                <div className="w-full flex-1 relative mt-1 z-10 select-none">
-
+                <div className="w-full flex-1 relative mt-1 z-10 select-none px-2">
                   {/* Mini D-Pad */}
-                  <div className="absolute top-2 left-1 w-12 h-12 flex items-center justify-center">
-                    <div className="w-10 h-3 bg-[#1c1c1c] absolute rounded-[1px] shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
-                    <div className="w-3 h-10 bg-[#1c1c1c] absolute rounded-[1px] shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#111] absolute shadow-inner"></div>
+                  <div className="absolute top-0.5 left-0.5 w-10 h-10 flex items-center justify-center">
+                    <div className={`absolute inset-0 rounded-full shadow-inner ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'bg-[#c8c6ba]' : 'bg-black/15'}`}></div>
+                    <div className="w-9 h-2.5 bg-[#1c1c1c] absolute rounded-sm shadow-md z-10"></div>
+                    <div className="w-2.5 h-9 bg-[#1c1c1c] absolute rounded-sm shadow-md z-10"></div>
                   </div>
 
                   {/* Mini A/B Buttons */}
-                  <div className="absolute top-5 right-1 w-[55px] h-[25px]">
-                    {/* Recessed Pill */}
-                    <div className="absolute inset-0 bg-black/10 rounded-full transform -rotate-[25deg]"></div>
-                    <div className="absolute inset-0 flex justify-between items-center px-0.5 transform -rotate-[25deg]">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <div className="w-5 h-5 rounded-full bg-[#8c1f54] shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_-1px_-1px_2px_rgba(0,0,0,0.5)] border-b-2 border-[#4a0827]"></div>
-                      </div>
-                      <div className="flex flex-col items-center gap-0.5">
-                        <div className="w-5 h-5 rounded-full bg-[#8c1f54] shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_-1px_-1px_2px_rgba(0,0,0,0.5)] border-b-2 border-[#4a0827]"></div>
-                      </div>
+                  <div className="absolute top-1.5 right-0.5 w-[50px] h-[25px]">
+                    <div className={`absolute inset-0 rounded-full transform -rotate-[25deg] shadow-inner ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'bg-[#c2c0b4]' : 'bg-black/15'}`}></div>
+                    <div className="absolute inset-0 flex justify-between items-center px-1 transform -rotate-[25deg]">
+                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-[#d61e6d] to-[#750737] shadow-md border-b-[1.5px] border-[#4a0221]"></div>
+                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-[#d61e6d] to-[#750737] shadow-md border-b-[1.5px] border-[#4a0221]"></div>
                     </div>
                   </div>
 
                   {/* Mini Select/Start */}
-                  <div className="absolute bottom-6 left-5 flex gap-3 transform -rotate-[15deg] opacity-90">
-                    <div className="flex flex-col items-center gap-0.5">
-                      <div className="w-5 h-1.5 bg-[#4a4d52] rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
-                    </div>
-                    <div className="flex flex-col items-center gap-0.5">
-                      <div className="w-5 h-1.5 bg-[#4a4d52] rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.5)]"></div>
-                    </div>
+                  <div className="absolute bottom-4 left-4 flex gap-3 transform -rotate-[22deg] opacity-70">
+                    <div className="w-4 h-1 bg-[#4a4d52] rounded-full shadow-sm"></div>
+                    <div className="w-4 h-1 bg-[#4a4d52] rounded-full shadow-sm"></div>
                   </div>
 
                   {/* Mini Speaker Grille */}
-                  <div className="absolute bottom-3 right-2 flex gap-1 transform -rotate-[25deg] opacity-50">
-                    <div className="w-1 h-8 bg-black/20 rounded-full shadow-inner"></div>
-                    <div className="w-1 h-8 bg-black/20 rounded-full shadow-inner"></div>
-                    <div className="w-1 h-8 bg-black/20 rounded-full shadow-inner"></div>
-                    <div className="w-1 h-8 bg-black/20 rounded-full shadow-inner"></div>
+                  <div className="absolute bottom-4 right-3 flex gap-0.5 transform -rotate-[22deg] opacity-60">
+                    <div className={`w-0.5 h-6 rounded-full shadow-inner ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'bg-[#a8a699]' : 'bg-black/30'}`}></div>
+                    <div className={`w-0.5 h-6 rounded-full shadow-inner ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'bg-[#a8a699]' : 'bg-black/30'}`}></div>
+                    <div className={`w-0.5 h-6 rounded-full shadow-inner ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'bg-[#a8a699]' : 'bg-black/30'}`}></div>
+                    <div className={`w-0.5 h-6 rounded-full shadow-inner ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'bg-[#a8a699]' : 'bg-black/30'}`}></div>
+                    <div className={`w-0.5 h-6 rounded-full shadow-inner ${tempCasing.type === 'classic' && tempCasing.classicId === 'plastic-gray' ? 'bg-[#a8a699]' : 'bg-black/30'}`}></div>
                   </div>
                 </div>
               </div>
@@ -842,61 +852,96 @@ function App() {
 
           {/* Game Boy shell — JS-computed scale keeps all buttons accessible on any screen size */}
           <div
-            className={`w-[490px] h-[860px] shrink-0 rounded-[2rem] sm:rounded-none sm:rounded-tl-2xl sm:rounded-tr-2xl sm:rounded-bl-[2.5rem] sm:rounded-br-[7rem] pt-8 sm:pt-6 pb-8 px-4 sm:px-6 flex flex-col items-center shadow-none sm:shadow-[0_30px_60px_rgba(0,0,0,0.6),inset_-5px_-5px_20px_rgba(0,0,0,0.1),inset_5px_5px_15px_rgba(255,255,255,0.8)] border-0 sm:border-b-[8px] sm:border-r-[4px] ring-1 ring-black/5 relative origin-center z-10 texture-plastic ${getCasingClasses(currentCasing)}`}
+            className={`w-[490px] h-[860px] shrink-0 rounded-tl-xl rounded-tr-xl rounded-bl-2xl rounded-br-[7rem] pt-8 pb-8 px-6 flex flex-col items-center shadow-[30px_40px_60px_rgba(0,0,0,0.6),inset_-5px_-5px_20px_rgba(0,0,0,0.1),inset_5px_5px_15px_rgba(255,255,255,0.9)] border-r-8 border-b-[12px] border-[#a3a193] relative origin-center z-10 texture-plastic overflow-hidden ${getCasingClasses(currentCasing)}`}
             style={{
               ...getCasingStyles(currentCasing),
               transform: `scale(${consoleScale})`,
-              // Negative margins collapse the 490×860 layout box to the visual size.
-              // Without these, the element still takes 490×860 of flow space even when shrunk.
               marginBlock: `${(consoleScale - 1) * 430}px`,
               marginInline: `${(consoleScale - 1) * 245}px`,
             }}
           >
+            {/* Texture Overlay */}
+            <div className="absolute inset-0 opacity-[0.04] pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiAvPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMDAwIiAvPjwvc3ZnPg==')] mix-blend-multiply z-0"></div>
 
-            {/* Top Grooves */}
-            <div className={`absolute top-0 left-4 right-4 h-6 border-b-2 border-t-2 opacity-50 shadow-inner ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'border-[#c0bdae]' : 'border-black/20'}`}></div>
-
-            {/* Power Switch Slider */}
-            <div className="absolute top-0 left-10 w-20 h-4 bg-[#b5b2a3] rounded-b-md shadow-inner border-b border-x border-[#8c897d] flex items-end justify-center pb-0.5 cursor-pointer">
-              <div className="w-12 h-2.5 bg-[#8c897d] rounded shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)] flex justify-between px-1 items-center">
-                <div className="w-0.5 h-1.5 bg-[#4a4a4a]"></div>
-                <div className="w-0.5 h-1.5 bg-[#4a4a4a]"></div>
-                <div className="w-0.5 h-1.5 bg-[#4a4a4a]"></div>
-                <div className="w-0.5 h-1.5 bg-[#4a4a4a]"></div>
+            {/* Top Area Hardware Details */}
+            <div className="absolute top-0 left-0 w-full z-10">
+              <div className="w-full h-2 border-b-2 border-t-2 border-[#b5b3a6] shadow-[0_1px_1px_rgba(255,255,255,0.8)] opacity-70"></div>
+              <div className="absolute top-0 left-[70px] w-[90px] h-[16px] bg-[#a8a699] rounded-b-md shadow-[inset_0_2px_5px_rgba(0,0,0,0.4),0_1px_1px_rgba(255,255,255,0.8)] flex justify-center pb-1 items-end">
+                <div className="w-14 h-2.5 bg-[#6b6a62] rounded-b-sm shadow-[inset_0_1px_2px_rgba(0,0,0,0.6)] flex justify-evenly items-center px-1">
+                  <div className="w-[1.5px] h-2 bg-[#333]"></div>
+                  <div className="w-[1.5px] h-2 bg-[#333]"></div>
+                  <div className="w-[1.5px] h-2 bg-[#333]"></div>
+                  <div className="w-[1.5px] h-2 bg-[#333]"></div>
+                </div>
               </div>
+
+              {/* Hardware Rewind/FF Module */}
+              {activeGame && (
+                <div className="absolute top-[16px] right-12 z-20">
+                  {/* Recessed Pill Channel */}
+                  <div className={`flex items-center gap-3 px-3 py-1.5 rounded-full shadow-[inset_2px_3px_5px_rgba(0,0,0,0.4),0_1px_-1px_rgba(255,255,255,0.3)] border border-black/10 transition-all duration-500 ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'bg-[#b6b4a7]' : 'bg-black/30 backdrop-blur-[2px]'}`}>
+                    
+                    {/* Rewind Button */}
+                    <button
+                      onPointerDown={() => simulateKeyboardEvent('Backspace', true)}
+                      onPointerUp={() => simulateKeyboardEvent('Backspace', false)}
+                      onPointerOut={() => simulateKeyboardEvent('Backspace', false)}
+                      className="group relative w-7 h-7 flex items-center justify-center"
+                    >
+                      <div className="absolute inset-0 bg-[#2a2a2a] rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.6),inset_1px_1px_2px_rgba(255,255,255,0.1)] border-b-2 border-black group-active:translate-y-[1px] group-active:shadow-none transition-all cursor-pointer overflow-hidden">
+                        {/* Material Texture */}
+                        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)]"></div>
+                      </div>
+                      <div className="relative z-10 flex gap-[1px] opacity-40 group-hover:opacity-60 transition-opacity">
+                        <div className="w-1 h-2 border-r-[1.5px] border-t-[1.5px] border-white rotate-[225deg]"></div>
+                        <div className="w-1 h-2 border-r-[1.5px] border-t-[1.5px] border-white rotate-[225deg]"></div>
+                      </div>
+                    </button>
+
+                    {/* Fast Forward Button */}
+                    <button
+                      onPointerDown={() => simulateKeyboardEvent('Space', true)}
+                      onPointerUp={() => simulateKeyboardEvent('Space', false)}
+                      onPointerOut={() => simulateKeyboardEvent('Space', false)}
+                      className="group relative w-7 h-7 flex items-center justify-center"
+                    >
+                      <div className="absolute inset-0 bg-[#2a2a2a] rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.6),inset_1px_1px_2px_rgba(255,255,255,0.1)] border-b-2 border-black group-active:translate-y-[1px] group-active:shadow-none transition-all cursor-pointer overflow-hidden">
+                        {/* Material Texture */}
+                        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)]"></div>
+                      </div>
+                      <div className="relative z-10 flex gap-[1px] opacity-40 group-hover:opacity-60 transition-opacity">
+                        <div className="w-1 h-2 border-r-[1.5px] border-t-[1.5px] border-white rotate-[45deg]"></div>
+                        <div className="w-1 h-2 border-r-[1.5px] border-t-[1.5px] border-white rotate-[45deg]"></div>
+                      </div>
+                    </button>
+                    
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Exact DMG Screen Bezel */}
-            <div className="w-[95%] h-[420px] bg-[#61626a] rounded-t-xl rounded-b-[4rem] pt-8 pb-8 px-10 shadow-[inset_0_10px_20px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center relative border-b-4 border-r-2 border-[#444] mt-2 shrink-0">
-
-              {/* Rewind/Fast-Forward overlay */}
-              {activeGame && (
-                <div className="absolute top-2 right-4 flex gap-2 z-50 opacity-50 hover:opacity-100 transition-opacity">
-                  <button
-                    className="bg-[#222]/80 text-[#c0bdae] p-1.5 rounded-full hover:bg-[var(--retro-neon)] hover:text-black active:scale-90 transition-all shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.8)] backdrop-blur-sm cursor-pointer"
-                    onPointerDown={() => simulateKeyboardEvent('Backspace', true)}
-                    onPointerUp={() => simulateKeyboardEvent('Backspace', false)}
-                    onPointerOut={() => simulateKeyboardEvent('Backspace', false)}
-                    title="Rewind (Hold Backspace)"
-                  >
-                    <Rewind size={16} fill="currentColor" />
-                  </button>
-                  <button
-                    className="bg-[#222]/80 text-[#c0bdae] p-1.5 rounded-full hover:bg-[var(--retro-neon)] hover:text-black active:scale-90 transition-all shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.8)] backdrop-blur-sm cursor-pointer"
-                    onPointerDown={() => simulateKeyboardEvent('Space', true)}
-                    onPointerUp={() => simulateKeyboardEvent('Space', false)}
-                    onPointerOut={() => simulateKeyboardEvent('Space', false)}
-                    title="Fast Forward (Hold Space)"
-                  >
-                    <FastForward size={16} fill="currentColor" />
-                  </button>
+            <div className="w-[95%] h-[420px] bg-gradient-to-b from-[#5c5d66] to-[#45464d] rounded-t-xl rounded-b-[4.5rem] p-6 shadow-[inset_0_8px_20px_rgba(0,0,0,0.6),0_2px_2px_rgba(255,255,255,0.6)] border-b-[3px] border-r-[2px] border-[#333] relative z-10 mt-8 shrink-0">
+              
+              {/* Bezel Decorative Lines & Text */}
+              <div className="w-[95%] mx-auto flex flex-col items-center mb-6 relative top-1 gap-2">
+                <div className="w-full flex items-center justify-center gap-3">
+                  <div className="flex-1 h-[3px] bg-[#751125] shadow-[inset_0_1px_1px_rgba(0,0,0,0.3)]"></div>
+                  <span className="text-[7.5px] text-[#b8b8b8] font-black tracking-[0.25em] z-10 px-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] uppercase whitespace-nowrap">RETROVAULT • HIGH FIDELITY</span>
+                  <div className="flex-1 h-[3px] bg-[#751125] shadow-[inset_0_1px_1px_rgba(0,0,0,0.3)]"></div>
                 </div>
-              )}
+                <div className="w-full flex items-center justify-center gap-3 opacity-80">
+                  <div className="flex-1 h-[3px] bg-[#161c5c] shadow-[inset_0_1px_1px_rgba(0,0,0,0.3)]"></div>
+                  <div className="w-[160px] h-0"></div> {/* Match text width roughly */}
+                  <div className="flex-1 h-[3px] bg-[#161c5c] shadow-[inset_0_1px_1px_rgba(0,0,0,0.3)]"></div>
+                </div>
+              </div>
 
               {/* Actual Screen Content */}
-              <div id="emulator-view" className="w-full max-w-[450px] flex-1 bg-[#8bac0f] rounded-none overflow-hidden relative border-[4px] border-[#222] shadow-[inset_0_0_30px_rgba(0,0,0,0.4)] ring-1 ring-[#555]">
-                <div className="absolute inset-0 pointer-events-none opacity-20 z-10 scanlines mix-blend-overlay"></div>
-                <div className="absolute inset-0 pointer-events-none opacity-10 z-10 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABZJREFUeNpi2rV7928bEJAxcAEEAAgwADoEA3hF59UIAAAAAElFTkSuQmCC')] repeat mix-blend-multiply"></div>
+              <div id="emulator-view" className="mx-auto mt-1 w-[320px] h-[300px] bg-[#8bac0f] border-[6px] border-[#111] shadow-[inset_0_0_20px_rgba(0,0,0,0.5),0_1px_1px_rgba(255,255,255,0.2)] relative overflow-hidden ring-1 ring-[#555] rounded-sm">
+                <div className="absolute inset-0 opacity-[0.15] bg-[linear-gradient(rgba(0,0,0,0.5)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.5)_1px,transparent_1px)] bg-[size:3px_3px] pointer-events-none z-10"></div>
+                <div className="absolute inset-0 shadow-[inset_5px_5px_15px_rgba(0,0,0,0.3)] pointer-events-none z-20"></div>
+                <div className="absolute -top-16 -left-16 w-[200%] h-[200%] bg-gradient-to-br from-white/10 to-transparent rotate-45 transform pointer-events-none z-30"></div>
                 <EmulatorConsole
                   gameId={activeGame?.metadata.id || ''}
                   gameTitle={activeGame?.metadata.title || ''}
@@ -912,118 +957,118 @@ function App() {
             </div>
 
             {/* Authentic Logo */}
-            <div className="w-[90%] flex mt-2 mb-2 mx-auto justify-start pl-[5%] items-center z-20">
-              <span className={`font-black text-[10px] tracking-widest font-sans mr-1 mt-1 opacity-90 ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#372d80]' : 'text-current grayscale contrast-200 opacity-60'}`}>Nintendo</span>
-              <span className={`font-black italic text-2xl tracking-widest font-sans ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#372d80]' : 'text-current grayscale contrast-200 opacity-60'}`}>GAME BOY</span>
-              <span className={`font-black text-[8px] ml-0.5 mt-0.5 align-top opacity-80 ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#372d80]' : 'text-current grayscale contrast-200 opacity-60'}`}>TM</span>
+            <div className="w-full pl-10 mt-6 flex items-baseline gap-2 z-10 relative opacity-90 drop-shadow-[0_1px_1px_rgba(255,255,255,0.5)]">
+              <span className={`font-bold text-lg tracking-widest ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#2b2270]' : 'text-current grayscale contrast-200'}`}>Nintendo</span>
+              <span className={`font-black italic text-2xl font-serif ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#2b2270]' : 'text-current grayscale contrast-200'}`}>GAME BOY</span>
+              <span className={`font-bold text-[8px] -ml-1 align-top mt-2 ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'text-[#2b2270]' : 'text-current grayscale contrast-200'}`}>TM</span>
             </div>
 
             {/* Console Bottom Area (Controls & Speakers) */}
-            <div className="w-full flex-1 flex flex-col relative px-5 mt-2">
+            <div className="w-full flex-1 flex flex-col relative px-8 mt-4">
 
               {/* Row 1: D-Pad and Action Buttons */}
-              <div className="flex justify-between items-center w-full mt-2">
+              <div className="flex justify-between items-center w-full mt-4">
 
                 {/* Exact DMG D-PAD */}
-                <div className="w-[150px] h-[140px] relative select-none">
-                  {/* D-Pad Base Shadow/Recess */}
-                  <div className="absolute inset-2 bg-[#b8b8b8] rounded-full shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)] blur-[1px]"></div>
+                <div className="relative w-36 h-36 flex items-center justify-center select-none">
+                  {/* D-Pad Base Circle Recess */}
+                  <div className={`absolute w-36 h-36 rounded-full shadow-[inset_2px_2px_8px_rgba(0,0,0,0.25),inset_-2px_-2px_6px_rgba(255,255,255,0.8)] filter blur-[0.5px] ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'bg-gradient-to-br from-[#c8c6ba] to-[#dedcd1]' : 'bg-black/15'}`}></div>
+                  
+                  <div className="relative w-[130px] h-[130px] flex items-center justify-center">
+                    {/* Vertical Arm */}
+                    <div className="absolute w-[42px] h-[125px] bg-[#1c1c1c] rounded-md shadow-[0_6px_12px_rgba(0,0,0,0.5),inset_1px_2px_2px_rgba(255,255,255,0.15),inset_-1px_-2px_2px_rgba(0,0,0,0.8)] border-b-[5px] border-r border-[#0a0a0a] flex flex-col justify-between py-3 items-center z-10">
+                      <div className="w-[24px] flex flex-col gap-1.5 opacity-20"><div className="h-0.5 bg-white rounded-full"></div><div className="h-0.5 bg-white rounded-full"></div><div className="h-0.5 bg-white rounded-full"></div></div>
+                      <div className="w-[24px] flex flex-col gap-1.5 opacity-20"><div className="h-0.5 bg-white rounded-full"></div><div className="h-0.5 bg-white rounded-full"></div><div className="h-0.5 bg-white rounded-full"></div></div>
+                    </div>
+                    {/* Horizontal Arm */}
+                    <div className="absolute w-[125px] h-[42px] bg-[#1c1c1c] rounded-md shadow-[0_6px_12px_rgba(0,0,0,0.5),inset_1px_2px_2px_rgba(255,255,255,0.15),inset_-1px_-2px_2px_rgba(0,0,0,0.8)] border-b-[5px] border-r border-[#0a0a0a] flex justify-between px-3 items-center z-10">
+                       <div className="h-[24px] flex gap-1.5 opacity-20"><div className="w-0.5 bg-white rounded-full"></div><div className="w-0.5 bg-white rounded-full"></div><div className="w-0.5 bg-white rounded-full"></div></div>
+                       <div className="h-[24px] flex gap-1.5 opacity-20"><div className="w-0.5 bg-white rounded-full"></div><div className="w-0.5 bg-white rounded-full"></div><div className="w-0.5 bg-white rounded-full"></div></div>
+                    </div>
+                    {/* Center Indent */}
+                    <div className="absolute w-[28px] h-[28px] bg-gradient-to-br from-[#111] to-[#222] rounded-full shadow-[inset_1px_1px_4px_rgba(0,0,0,0.9)] z-20"></div>
 
-                  {/* Matte Black Cross with accurate chunky arm width */}
-                  <div className="absolute inset-x-[50px] top-2 bottom-2 bg-[#1c1c1c] rounded-md shadow-[0_5px_5px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)] border-b-[5px] border-[#000] z-10 flex flex-col justify-between items-center py-3 pointer-events-none">
-                    <div className="w-full flex flex-col gap-[4px] items-center opacity-40 mt-1"><div className="w-[24px] h-[2px] bg-[#666] rounded-full"></div><div className="w-[24px] h-[2px] bg-[#666] rounded-full"></div><div className="w-[24px] h-[2px] bg-[#666] rounded-full"></div></div>
-                    <div className="w-full flex flex-col gap-[4px] items-center opacity-50 mb-1"><div className="w-[24px] h-[2px] bg-[#666] rounded-full"></div><div className="w-[24px] h-[2px] bg-[#666] rounded-full"></div><div className="w-[24px] h-[2px] bg-[#666] rounded-full"></div></div>
+                    {/* Invisible Hit Zones */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[42px] h-[55px] z-30 cursor-pointer" onPointerDown={() => simulateKeyDown('up')} onPointerUp={() => simulateKeyUp('up')} onPointerOut={() => simulateKeyUp('up')} />
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[42px] h-[55px] z-30 cursor-pointer" onPointerDown={() => simulateKeyDown('down')} onPointerUp={() => simulateKeyUp('down')} onPointerOut={() => simulateKeyUp('down')} />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-[42px] w-[55px] z-30 cursor-pointer" onPointerDown={() => simulateKeyDown('left')} onPointerUp={() => simulateKeyUp('left')} onPointerOut={() => simulateKeyUp('left')} />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 h-[42px] w-[55px] z-30 cursor-pointer" onPointerDown={() => simulateKeyDown('right')} onPointerUp={() => simulateKeyUp('right')} onPointerOut={() => simulateKeyUp('right')} />
                   </div>
-                  <div className="absolute inset-y-[48px] left-2 right-2 bg-[#1c1c1c] rounded-md shadow-[0_5px_5px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)] border-b-[5px] border-[#000] z-10 flex justify-between items-center px-3 pointer-events-none">
-                    <div className="h-full flex gap-[4px] items-center opacity-40 ml-1"><div className="h-[24px] w-[2px] bg-[#666] rounded-full"></div><div className="h-[24px] w-[2px] bg-[#666] rounded-full"></div><div className="h-[24px] w-[2px] bg-[#666] rounded-full"></div></div>
-                    <div className="h-full flex gap-[4px] items-center opacity-40 mr-1"><div className="h-[24px] w-[2px] bg-[#666] rounded-full"></div><div className="h-[24px] w-[2px] bg-[#666] rounded-full"></div><div className="h-[24px] w-[2px] bg-[#666] rounded-full"></div></div>
-                  </div>
-
-                  {/* Center Circle Override + Deep Indent */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] w-[54px] h-[54px] rounded bg-[#1c1c1c] z-10 pointer-events-none"></div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] w-[44px] h-[44px] rounded-full bg-[#111] shadow-[inset_0_4px_6px_rgba(0,0,0,0.9),0_1px_1px_rgba(255,255,255,0.1)] z-20 pointer-events-none"></div>
-
-                  {/* Directional Hit Zones */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[55px] h-[55px] z-30 cursor-pointer active:bg-white/10 rounded-t-lg" onPointerDown={() => simulateKeyDown('up')} onPointerUp={() => simulateKeyUp('up')} onPointerOut={() => simulateKeyUp('up')} />
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[55px] h-[55px] z-30 cursor-pointer active:bg-white/10 rounded-b-lg" onPointerDown={() => simulateKeyDown('down')} onPointerUp={() => simulateKeyUp('down')} onPointerOut={() => simulateKeyUp('down')} />
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[55px] h-[55px] z-30 cursor-pointer active:bg-white/10 rounded-l-lg" onPointerDown={() => simulateKeyDown('left')} onPointerUp={() => simulateKeyUp('left')} onPointerOut={() => simulateKeyUp('left')} />
-                  <div className="absolute right-0 left-auto top-1/2 -translate-y-1/2 w-[55px] h-[55px] z-30 cursor-pointer active:bg-white/10 rounded-r-lg" onPointerDown={() => simulateKeyDown('right')} onPointerUp={() => simulateKeyUp('right')} onPointerOut={() => simulateKeyUp('right')} />
                 </div>
 
                 {/* Exact A / B Buttons */}
-                <div className="relative mt-[3rem] w-[155px] h-[60px] mr-2">
+                <div className="relative w-[155px] h-[75px] mr-2">
                   {/* Indentation Pill background */}
-                  <div className="absolute inset-0 bg-[#c0bdae] rounded-[3rem] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),0_1px_1px_rgba(255,255,255,0.7)] transform -rotate-[25deg] scale-105"></div>
+                  <div className={`absolute inset-0 rounded-[3rem] shadow-[inset_1px_2px_5px_rgba(0,0,0,0.25),inset_-1px_-1px_3px_rgba(255,255,255,0.9)] transform -rotate-[25deg] scale-105 ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'bg-gradient-to-br from-[#c2c0b4] to-[#dedcd1]' : 'bg-black/15'}`}></div>
 
-                  <div className="absolute inset-0 flex justify-between items-center px-[8px] transform -rotate-[25deg]">
+                  <div className="absolute inset-0 flex justify-between items-center px-[4px] transform -rotate-[25deg] z-10 transition-all">
                     {/* B Button */}
                     <div className="flex flex-col items-center relative group select-none">
                       <div
-                        className="w-[56px] h-[56px] rounded-full bg-[#8c1f54] shadow-[0_4px_6px_rgba(0,0,0,0.6),inset_-1px_-3px_5px_rgba(0,0,0,0.5),inset_1px_2px_4px_rgba(255,100,150,0.3)] flex items-center justify-center border-b-[4px] border-[#4a0827] active:border-b-0 active:translate-y-1 transition-all cursor-pointer relative overflow-hidden"
+                        className="w-[54px] h-[54px] rounded-full bg-gradient-to-br from-[#d61e6d] to-[#750737] shadow-[0_5px_8px_rgba(0,0,0,0.5),inset_2px_3px_5px_rgba(255,150,180,0.5),inset_-2px_-4px_6px_rgba(0,0,0,0.6)] border-b-[5px] border-r-[2px] border-[#4a0221] group-active:border-b-0 group-active:border-r-0 group-active:translate-y-[5px] group-active:translate-x-[2px] transition-all cursor-pointer"
                         onPointerDown={() => simulateKeyDown('b')}
                         onPointerUp={() => simulateKeyUp('b')}
                         onPointerOut={() => simulateKeyUp('b')}
                       ></div>
-                      <span className="text-[#372d80] font-black text-[12px] tracking-widest absolute -bottom-7 right-[-4px] transform rotate-[25deg] pointer-events-none">B</span>
+                      <span className="text-[#2b2270] font-bold tracking-widest mt-1 text-[13px] absolute -bottom-8 -right-1 opacity-90 drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] pointer-events-none">B</span>
                     </div>
 
                     {/* A Button */}
                     <div className="flex flex-col items-center relative group select-none">
                       <div
-                        className="w-[56px] h-[56px] rounded-full bg-[#8c1f54] shadow-[0_4px_6px_rgba(0,0,0,0.6),inset_-1px_-3px_5px_rgba(0,0,0,0.5),inset_1px_2px_4px_rgba(255,100,150,0.3)] flex items-center justify-center border-b-[4px] border-[#4a0827] active:border-b-0 active:translate-y-1 transition-all cursor-pointer relative overflow-hidden"
+                        className="w-[54px] h-[54px] rounded-full bg-gradient-to-br from-[#d61e6d] to-[#750737] shadow-[0_5px_8px_rgba(0,0,0,0.5),inset_2px_3px_5px_rgba(255,150,180,0.5),inset_-2px_-4px_6px_rgba(0,0,0,0.6)] border-b-[5px] border-r-[2px] border-[#4a0221] group-active:border-b-0 group-active:border-r-0 group-active:translate-y-[5px] group-active:translate-x-[2px] transition-all cursor-pointer"
                         onPointerDown={() => simulateKeyDown('a')}
                         onPointerUp={() => simulateKeyUp('a')}
                         onPointerOut={() => simulateKeyUp('a')}
                       ></div>
-                      <span className="text-[#372d80] font-black text-[12px] tracking-widest absolute -bottom-7 right-[-4px] transform rotate-[25deg] pointer-events-none">A</span>
+                      <span className="text-[#2b2270] font-bold tracking-widest mt-1 text-[13px] absolute -bottom-8 -right-1 opacity-90 drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] pointer-events-none">A</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Row 2: Select/Start and Speaker Grill */}
-              <div className="flex justify-between items-end w-full mt-auto pb-6 px-4">
+              <div className="w-full flex justify-between items-end mt-auto pb-10">
 
                 {/* Select / Start Rubber Pills */}
-                <div className="flex gap-[1.8rem] ml-[50px] pb-[10px] select-none">
-
+                <div className="flex gap-10 transform -rotate-[22deg] mb-12 ml-4">
                   {/* Select */}
-                  <div className="flex flex-col items-center gap-1 cursor-pointer">
-                    <div className="w-[65px] h-[35px] bg-[#c0bdae] rounded-full shadow-[inset_0_3px_5px_rgba(0,0,0,0.4),0_1px_1px_rgba(255,255,255,0.8)] flex items-center justify-center transform -rotate-[22deg] group relative">
-                      <div
-                        className="w-[55px] h-[25px] rounded-full bg-[#4a4d52] shadow-[0_2px_4px_rgba(0,0,0,0.6),inset_1px_1px_2px_rgba(255,255,255,0.2)] border-b-[2px] border-[#222] absolute active:border-b-0 active:translate-y-[1px] transition-all"
-                        onPointerDown={() => simulateKeyDown('select')}
-                        onPointerUp={() => simulateKeyUp('select')}
-                        onPointerOut={() => simulateKeyUp('select')}
-                      ></div>
-                    </div>
-                    <span className="text-[#372d80] font-black text-[10px] tracking-wider transform -rotate-[22deg] pointer-events-none mr-3 mt-1.5 opacity-90">SELECT</span>
+                  <div className="flex flex-col items-center gap-1 group pb-2">
+                    <div
+                      className="w-[55px] h-[18px] bg-[#9ca0a6] rounded-full shadow-[inset_1px_2px_3px_rgba(255,255,255,0.3),inset_-1px_-2px_3px_rgba(0,0,0,0.4),0_3px_4px_rgba(0,0,0,0.4)] border-b-[3px] border-[#555] active:border-b-0 active:translate-y-[3px] transition-all cursor-pointer"
+                      onPointerDown={() => simulateKeyDown('select')}
+                      onPointerUp={() => simulateKeyUp('select')}
+                      onPointerOut={() => simulateKeyUp('select')}
+                    ></div>
+                    <span className="text-[#2b2270] font-bold text-[10px] tracking-[0.2em] mt-1 opacity-90 drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] pointer-events-none">SELECT</span>
                   </div>
 
                   {/* Start */}
-                  <div className="flex flex-col items-center gap-1 cursor-pointer">
-                    <div className="w-[65px] h-[35px] bg-[#c0bdae] rounded-full shadow-[inset_0_3px_5px_rgba(0,0,0,0.4),0_1px_1px_rgba(255,255,255,0.8)] flex items-center justify-center transform -rotate-[22deg] group relative">
-                      <div
-                        className="w-[55px] h-[25px] rounded-full bg-[#4a4d52] shadow-[0_2px_4px_rgba(0,0,0,0.6),inset_1px_1px_2px_rgba(255,255,255,0.2)] border-b-[2px] border-[#222] absolute active:border-b-0 active:translate-y-[1px] transition-all"
-                        onPointerDown={() => simulateKeyDown('start')}
-                        onPointerUp={() => simulateKeyUp('start')}
-                        onPointerOut={() => simulateKeyUp('start')}
-                      ></div>
-                    </div>
-                    <span className="text-[#372d80] font-black text-[10px] tracking-wider transform -rotate-[22deg] pointer-events-none mr-3 mt-1.5 opacity-90">START</span>
+                  <div className="flex flex-col items-center gap-1 group pb-2">
+                    <div
+                      className="w-[55px] h-[18px] bg-[#9ca0a6] rounded-full shadow-[inset_1px_2px_3px_rgba(255,255,255,0.3),inset_-1px_-2px_3px_rgba(0,0,0,0.4),0_3px_4px_rgba(0,0,0,0.4)] border-b-[3px] border-[#555] active:border-b-0 active:translate-y-[3px] transition-all cursor-pointer"
+                      onPointerDown={() => simulateKeyDown('start')}
+                      onPointerUp={() => simulateKeyUp('start')}
+                      onPointerOut={() => simulateKeyUp('start')}
+                    ></div>
+                    <span className="text-[#2b2270] font-bold text-[10px] tracking-[0.2em] mt-1 opacity-90 drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] pointer-events-none">START</span>
                   </div>
-
                 </div>
 
                 {/* Speaker Grill */}
-                <div className="flex gap-[10px] mt-10 opacity-85">
-                  <div className="w-[10px] h-[75px] rounded-full bg-[#9c998c] shadow-[inset_3px_2px_5px_rgba(0,0,0,0.6),1px_1px_1px_rgba(255,255,255,0.5)] transform -rotate-[-25deg]"></div>
-                  <div className="w-[10px] h-[75px] rounded-full bg-[#9c998c] shadow-[inset_3px_2px_5px_rgba(0,0,0,0.6),1px_1px_1px_rgba(255,255,255,0.5)] transform -rotate-[-25deg]"></div>
-                  <div className="w-[10px] h-[75px] rounded-full bg-[#9c998c] shadow-[inset_3px_2px_5px_rgba(0,0,0,0.6),1px_1px_1px_rgba(255,255,255,0.5)] transform -rotate-[-25deg]"></div>
-                  <div className="w-[10px] h-[75px] rounded-full bg-[#9c998c] shadow-[inset_3px_2px_5px_rgba(0,0,0,0.6),1px_1px_1px_rgba(255,255,255,0.5)] transform -rotate-[-25deg]"></div>
-                  <div className="w-[10px] h-[75px] rounded-full bg-[#9c998c] shadow-[inset_3px_2px_5px_rgba(0,0,0,0.6),1px_1px_1px_rgba(255,255,255,0.5)] transform -rotate-[-25deg]"></div>
+                <div className="flex gap-2.5 transform -rotate-[22deg] mb-8 mr-2 opacity-90">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={i}
+                      className={`w-2.5 h-[80px] rounded-full shadow-[inset_3px_3px_6px_rgba(0,0,0,0.5),1px_1px_1px_rgba(255,255,255,0.7)] ${currentCasing.type === 'classic' && currentCasing.classicId === 'plastic-gray' ? 'bg-[#a8a699]' : 'bg-black/15'}`}
+                    ></div>
+                  ))}
                 </div>
+              </div>
 
+              {/* Phones Jack */}
+              <div className="absolute bottom-2 left-0 w-full flex justify-center items-center text-[#888] text-[9px] gap-1 font-bold font-sans drop-shadow-[0_1px_0_rgba(255,255,255,0.6)] opacity-70">
+                <div className="w-3 h-3 border-[1.5px] border-[#888] rounded-full border-b-0 rounded-b-none mb-0.5"></div>
               </div>
             </div>
           </div>
