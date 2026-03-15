@@ -71,5 +71,22 @@ The base product provides a centralized dashboard featuring:
 - **User Engagement**: Average session length per game title tracked via the play-history module.
 - **Accuracy**: 100% adherence to original console aspect ratios and refresh rates.
 
-## 7. Strategic Constraint
-RetroVault is committed to the **"Zero-Server"** philosophy. Any future networking features (e.g., NetPlay) must be implemented via Peer-to-Peer (P2P) WebRTC protocols to maintain user privacy.
+## 8. Multi-Platform Roadmap (Future Scope)
+
+RetroVault aims to evolve from a browser-exclusive application into an **Omni-Platform Gaming Suite**. The future expansion is categorized into four distinct targets:
+
+### 8.1. Native Desktop Distribution (macOS & Windows)
+- **Objective**: Provide a standalone `.app` and `.exe` experience using **Electron** or **Tauri**.
+- **Key Features**: Direct low-level GPU acceleration, global hotkey support, and better integration with local ROM managers.
+- **Architectural Shift**: Decoupling the UI from browser-specific limitations to utilize native OS features (e.g., Discord Rich Presence).
+
+### 8.2. RetroVault Extension (Chrome Web Store)
+- **Objective**: An "at-your-fingertips" version of RetroVault accessible directly from the browser's extension bar.
+- **Key Features**: Quick-launch mini-player, side-panel emulation, and ROM "bookmarking" from web sources.
+
+### 8.3. RetroVault CLI (Terminal Version)
+- **Objective**: A high-performance, terminal-based emulator for minimalist environments (Mac Terminal, PowerShell, Linux Bash).
+- **Key Features**: ASCII/Sixel rendering or window orchestration via CLI flags, headless scanning, and terminal-based library management.
+
+### 8.4. Shared Core Logic
+- **Architecture**: Move toward a "Platform-Agnostic Core" where `@retrovault/core` and `@retrovault/db` are optimized to run in Node.js, Extension Service Workers, and Browser environments simultaneously.

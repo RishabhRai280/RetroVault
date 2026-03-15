@@ -254,3 +254,23 @@ All global visual effects are defined in `apps/web/src/index.css` and applied co
 | Custom Scrollbar | `custom-scrollbar` | Styled narrow scrollbars for panel overflows |
 
 Color themes (`arcade-neon`, `gameboy-dmg`, `virtual-boy`) override CSS custom properties (`--retro-neon`, `--retro-neon-dim`) used throughout for accent colors on buttons, log text, and telemetry bars.
+
+---
+
+## 6. Omni-Platform Monorepo Evolution
+
+To support the future roadmap (Native, Extension, CLI), the current monorepo is designed to evolve into a platform-agnostic workspace.
+
+### 6.1. Platform-Agnostic Core (`@retrovault/core`)
+- **Current State**: Primarily browser-based file scanning.
+- **Goal**: Abstract logic for ROM management and metadata scraping so it can run in **Node.js** (CLI/Desktop) and **Browser** (Web/Extension) with minimal shims.
+
+### 6.2. Decoupled UI Components (`@retrovault/ui`)
+- **Current State**: Shared React components.
+- **Goal**: Isolate business logic from skeuomorphic rendering to allow specialized UI layers (e.g., a lightweight popup for the Chrome Extension or a Sixel-based renderer for the CLI).
+
+### 6.3. Portability Architecture
+- **Web App**: The existing Vite application in `apps/web`.
+- **Native Desktop**: A new `apps/desktop` package using **Electron** or **Tauri**.
+- **Extension**: A `apps/extension` package utilizing Chrome Manifest v3.
+- **CLI**: A `apps/cli` package for terminal-based library management.

@@ -17,6 +17,9 @@ This document outlines the planned enhancements for RetroVault, aimed at transfo
 | **Haptic Feedback** | Gameplay | Low | Medium | P1 | ✅ Completed |
 | **Advanced Shaders (WebGPU/WebGL)** | Technical | High | Medium | P2 | ⏳ Planned |
 | **Multiplayer (WebRTC)** | Technical | Very High | Very High | P3 | ⏳ Planned |
+| **Native Desktop (Electron)** | Platform | Medium | High | P1 | ⏳ Planned |
+| **Chrome Extension** | Platform | Medium | High | P2 | ⏳ Planned |
+| **CLI / Terminal Player** | Platform | High | Medium | P3 | ⏳ Planned |
 
 ---
 
@@ -80,10 +83,21 @@ High-complexity features that serve as major resume highlights:
 
 ---
 
-## 🧩 4. Chrome Extension Potential (Future Phase)
+## 🧩 4. Platform Expansion (The Omni-Vault)
 
-*Note: These are lower priority as the focus remains on the web app for now.*
+Moving RetroVault beyond the browser tab to own the desktop and terminal experience:
 
-- **Side Panel Integration:** Using `chrome.sidePanel` to keep the emulator open while browsing.
-- **URL Detection:** Auto-detect games on websites and show a "Play in RetroVault" icon.
-- **Native File Handling:** Registering the extension as a handler for `.gba` or `.nes` files globally.
+### **Native Desktop Apps (macOS & Windows)**
+- **Goal:** Standalone performance and native OS integration.
+- **Details:** Use **Electron** or **Tauri** to wrap the web core. Enable native file system access without recurring prompt dialogs.
+- **Impact:** Significant boost in professional feel and high-performance threading.
+
+### **Chrome Extension Integration**
+- **Goal:** Zero-click access and contextual discovery.
+- **Details:** Implement `chrome.sidePanel` and context menus. Allow "Instant Play" when a browser detects a ROM link on any website.
+- **Impact:** Frictionless entry point for casual and power users alike.
+
+### **CLI / Terminal Version**
+- **Goal:** Minimalist engineering and server-side capability.
+- **Details:** A Node/Rust-based CLI that renders emulation via Sixel/Kitty protocols or opens an optimized discrete window. 
+- **Impact:** Unique appeal to developer/enthusiast demographics.

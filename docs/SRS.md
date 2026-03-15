@@ -90,3 +90,19 @@ The system utilizes four distinct **Key-Value Stores** via IndexedDB:
 - **Store: Metadata**: Stores Wikipedia enrichment data and scraped titles.
 - **Store: Saves**: Stores binary state blobs (`Uint8Array`) and associated timestamps.
 - **Store: History**: Stores cumulative cumulative playtime and "Last Played" metadata.
+
+---
+
+## 5. Omni-Platform Portability Requirements (Future Scope)
+
+### 5.1. Desktop Distribution (macOS/Windows)
+- **REQ-PL-501**: The system SHALL provide a production-ready installer for macOS (.dmg) and Windows (.exe).
+- **REQ-PL-502**: The desktop application SHALL utilize native file system access with persistent permissions.
+
+### 5.2. Browser Extension Integration
+- **REQ-PL-601**: The system SHALL provide a Chrome-compatible extension supporting the `sidePanel` API.
+- **REQ-PL-602**: The extension SHALL synchronize user metadata and play history with the web version where local storage is shared.
+
+### 5.3. Terminal / CLI Capability
+- **REQ-PL-701**: The CLI SHALL support ROM scanning and meta-data display via standard terminal output.
+- **REQ-PL-702**: The CLI SHALL provide an optional "headful" mode that spawns an optimized emulation window.
