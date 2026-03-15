@@ -1,6 +1,6 @@
 # RetroVault Documentation
 
-![Version](https://img.shields.io/badge/Version-1.0.0-blue)
+![Version](https://img.shields.io/badge/Version-1.1.0-blue)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-purple)
 
@@ -80,8 +80,7 @@ The product vision and roadmap. Covers:
 
 - Executive summary and target audience
 - Core value propositions
-- Phased feature roadmap (Phase 1 through Phase 5+)
-- Strategy for future opt-in server-side scaling
+- Phased feature roadmap
 
 ---
 
@@ -89,10 +88,9 @@ The product vision and roadmap. Covers:
 
 The formal functional and non-functional requirements. Covers:
 
-- Strict UI/UX state requirements
-- Functional requirements (FR-001 through FR-xxx)
-- Non-functional requirements (performance, security, compatibility)
-- Database object schemas
+- Functional requirements (ROM management, emulation control)
+- Non-functional requirements (performance, privacy)
+- Technical constraints
 
 ---
 
@@ -102,7 +100,7 @@ The visual layout reference. Covers:
 
 - Global layout grid definition
 - Component tree hierarchy
-- UX state definitions (idle, scanning, loading, playing, paused)
+- Retro-Technical design system details (materials, neons)
 
 ---
 

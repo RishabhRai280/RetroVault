@@ -2,7 +2,7 @@
 
 <img src="apps/web/public/logo.png" alt="RetroVault Logo" width="120" />
 
-<h1>RetroVault</h1>
+<h1>RetroVault v1.1</h1>
 <p><strong>A local-first, browser-based retro game emulator with a pixel-perfect skeuomorphic Game Boy shell.</strong><br/>
 No uploads. No servers. No accounts. Just your ROMs, running right in the browser.</p>
 
@@ -52,6 +52,7 @@ No uploads. No servers. No accounts. Just your ROMs, running right in the browse
 | 🎯 **Multi-Platform Emulation** | GBA (mGBA), SNES (Snes9x), NES (FCEUmm), GB/GBC (Gambatte) via Libretro cores |
 | 💾 **Save States** | Manual save/load + 30-second background auto-saves |
 | 📊 **Live Telemetry** | Real-time FPS graph, RAM/VRAM allocation, and target CPU architecture details |
+| 📜 **System Logs** | Real-time console for emulator events, ROM booting, and system status |
 | 🎨 **LCD Themes** | Arcade Neon, Gameboy DMG, Virtual Boy — switch on the fly |
 | 📱 **Mobile Ready** | Full responsive layout with a themed bottom-sheet navigation |
 | ⌨️ **Rebindable Controls** | Map any key to A, B, Up, Down, Left, Right, Start, Select |
@@ -138,6 +139,9 @@ http://localhost:5173
 | B Button | `Z` |
 | Start | `Enter` |
 | Select | `Shift` |
+| Rewind | `Backspace` |
+| Fast Forward | `Space` |
+| Full Screen | `F` |
 
 > All keys can be rebound via **Hardware Config → Configure Mappings**.
 
@@ -156,8 +160,16 @@ RetroVault/
 │       ├── src/
 │       │   ├── App.tsx        # Root layout, state, and orchestration
 │       │   └── components/
-│       │       └── GameBoy/
-│       │           └── EmulatorConsole.tsx  # Nostalgist.js emulator wrapper
+│       │       ├── GameBoy/
+│       │       │   └── GameBoyShell.tsx     # The skeuomorphic hardware container
+│       │       ├── Library/
+│       │       │   └── GameLibrary.tsx      # ROM collection management
+│       │       ├── Logs/
+│       │       │   └── SystemLogs.tsx       # Real-time event console
+│       │       ├── Telemetry/
+│       │       │   └── TelemetryDashboard.tsx # Performance metrics
+│       │       └── Saves/
+│       │           └── SaveStatesPanel.tsx  # State management UI
 │       └── public/            # Static assets and screenshots
 │
 ├── packages/

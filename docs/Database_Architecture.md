@@ -1,5 +1,5 @@
 # Database & Storage Architecture
-## RetroVault — v1.0.0
+## RetroVault — v1.1.0
 
 > This document describes the **actual storage implementation** as built, using `localforage` (IndexedDB-backed) for all persistence.
 

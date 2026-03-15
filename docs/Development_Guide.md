@@ -1,5 +1,5 @@
 # Local Development Guide
-## RetroVault — v1.0.0
+## RetroVault — v1.1.0
 
 > Complete setup, mental model, and contribution guide for developers working on RetroVault.
 
@@ -127,10 +127,11 @@ requestAnimationFrame telemetry loop starts measuring FPS
 |---|---|
 | `apps/web/src/App.tsx` | Root component — all state, layout, game launch logic (~770 lines) |
 | `apps/web/src/index.css` | All visual effects — themes, scanlines, CRT filter, textures, slider styles |
-| `apps/web/src/components/GameBoy/EmulatorConsole.tsx` | Nostalgist.js lifecycle wrapper — boot, save, resize, auto-save |
-| `packages/core/src/files.ts` | `scanDirectory()`, `extractMetadataFromName()`, `getBoxArtUrl()` |
-| `packages/db/src/index.ts` | All localforage storage: SaveState, Settings, PlayHistory, Favorites |
-| `packages/ui/src/` | Re-exported `Button` and `Card` React components |
+| `apps/web/src/components/GameBoy/GameBoyShell.tsx` | **Hardware Hub**: Orchestrates the 3D visual shell and the Nostalgist.js engine instance. |
+| `apps/web/src/components/Logs/SystemLogs.tsx` | **Event Console**: Capture and display of boot logs, error reports, and state events. |
+| `apps/web/src/components/Library/GameLibrary.tsx` | **Vault Manager**: Handles ROM scanning, metadata display, search, and filtering. |
+| `apps/web/src/components/Telemetry/TelemetryDashboard.tsx` | **Performance Monitor**: Real-time visualization of FPS, CPU architecture, and memory. |
+| `apps/web/src/components/Saves/SaveStatesPanel.tsx` | **State Manager**: The UI interface for manual and automated emulator memory snapshots. |
 | `turbo.json` | Turborepo pipeline definitions (dev, build, lint, typecheck) |
 
 ---

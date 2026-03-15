@@ -1,6 +1,6 @@
 # System Architecture
 
-## RetroVault — v1.0.0
+## RetroVault — v1.1.0
 
 **Status:** Implemented & Active
 
@@ -17,68 +17,59 @@ graph TD
     User([👤 User])
 
     subgraph Browser
-        UI[React UI Layer<br/>App.tsx]
-        EC[EmulatorConsole.tsx<br/>Nostalgist.js Wrapper]
-        Core[@retrovault/core<br/>ROM Scanner + Metadata]
-        DB[@retrovault/db<br/>localforage Storage]
-        Canvas[HTML5 Canvas<br/>Emulation Output]
+        UI["React UI Layer (App.tsx)"]
+        GBS["GameBoyShell.tsx (Skeuomorphic Container)"]
+        GL["GameLibrary.tsx (ROM Collection)"]
+        SL["SystemLogs.tsx (Event Console)"]
+        DB["@retrovault/db (localforage Storage)"]
+        Core["@retrovault/core (ROM Scanner)"]
     end
 
-    LibretroCloud[☁️ libretro-thumbnails<br/>GitHub CDN Box Art]
-    ROMFolder[📁 Local ROM Folder<br/>File System Access API]
+    LibretroCloud["☁️ libretro-thumbnails (GitHub CDN)"]
+    ROMFolder["📁 Local ROM Folder (File System Access API)"]
 
     User --> UI
-    UI --> Core
-    UI --> DB
-    UI --> EC
-    EC --> Canvas
+    UI --> GL
+    UI --> GBS
+    UI --> SL
+    GL --> Core
     Core --> ROMFolder
-    UI --> LibretroCloud
+    GBS --> DB
+    UI --> DB
+    GL --> LibretroCloud
 ```
 
 ---
 
 ## 2. Architectural Layers
 
-### 2.1 Presentation Layer — `apps/web/src/App.tsx`
+### 2.1 Presentation & Orchestration Layer — `apps/web/src/App.tsx`
 
-The root React component that:
+The `App.tsx` file serves as the **Central Nervous System** of RetroVault. It is a large-scale React component that manages the following:
 
-- **Manages all global state** using React `useState` hooks:
-  - `games` — the scanned ROM library (`GameMetadata[]`)
-  - `searchQuery` & `platformFilter` — active library filters
-  - `activeGame` — the currently loaded game (`{ metadata, file }`)
-  - `emulatorInstance` — the live `Nostalgist` object reference
-  - `userSettings` — volume, themes, key bindings
-  - `saveStates`, `playHistory`, `systemLogs`
-- **Orchestrates the three-column layout**: Library (left), Game Boy shell (center), Telemetry + Config (right)
-- **Drives the emulator lifecycle**: sets `activeGame` → passes `romFile` to `EmulatorConsole` → receives back the `Nostalgist` instance via `onReady` callback
-- **Runs the real-time telemetry loop** using `requestAnimationFrame` when a game is active, measuring FPS and JS heap allocation
-- **Handles keyboard bindings** using a global `keydown` listener that only fires during active key-bind-capture mode
+- **Global State Management**:
+  - `games`: A reactive list of all indexed ROMs.
+  - `activeGame`: The currently selected and loaded game state.
+  - `emulatorInstance`: A reference to the running Nostalgist.js instance, allowing the UI to send commands (save, load, reset).
+  - `systemLogs`: A rolling buffer of events and errors.
+  - `userSettings`: Persisted preferences including volume, themes, and custom key bindings.
+- **Layout Orchestration**: Uses a responsive flexbox/grid system to arrange the Library, the 3D-styled Game Boy shell, and the technical side panels.
+- **Lifecycle Coordination**: It triggers the transition from "Library View" to "Gameplay Mode" by resolving file handles and passing them to the emulation components.
+- **Input Management**: Capture and redirection of keyboard events to the emulator, including handling of "modal" states like key-rebinding.
 
-### 2.2 Emulation Layer — `apps/web/src/components/GameBoy/EmulatorConsole.tsx`
+### 2.2 Emulation Layer — `apps/web/src/components/GameBoy/GameBoyShell.tsx`
 
-The isolated wrapper component responsible for all Nostalgist.js lifecycle events:
+This component is the **Hardware Abstraction Layer**. It provides the skeuomorphic visual container and orchestrates the low-level `Nostalgist.js` engine:
 
-- **Boots one ROM** when `romFile` prop changes — uses a `useEffect` with `[romFile, resolveCore, gameId, gameTitle, platform]` as dependencies (deliberately **excluding** `volume`, `onLog`, `keyBindings` to prevent infinite restart loops — these are accessed via stable `useRef` snapshots instead)
-- **Resolves the correct Libretro core** via its internal `CORE_MAP`:
-
-  ```ts
-  GBA  → mgba
-  SNES → snes9x
-  NES  → fceumm
-  GB   → gambatte
-  GBC  → gambatte
-  MD   → genesis_plus_gx
-  ```
-
-- **Calls `Nostalgist.launch()`** with the ROM file, resolved core, a reference to the `<canvas>` element, retro-arch config (audio volume in dB, key bindings, auto save/load flags), and the current container pixel size
-- **Attempts to restore an auto-save state** from `localforage` after boot (via `SaveStateStorage.loadAutoState`)
-- **Auto-saves every 30 seconds** in the background using a `setInterval`
-- **Tracks cumulative play time** via `PlayHistoryStorage.updatePlayHistory` every 10 seconds
-- **Handles resize** using a `ResizeObserver` that calls `nostalgist.resize()` when the container bounds change
-- **Renders a BSOD-style error overlay** if Nostalgist.launch throws (blue screen, error message, Eject button)
-- **Shows a loading spinner** while the WASM core initializes
+- **Platform Resolution**: Automatically maps file extensions (GBA, SNES, NES, GB) to their high-performance WASM Libretro cores.
+- **Engine Lifecycle**:
+  - **Launch**: Manages the asynchronous compilation and initialization of WASM cores via Nostalgist.
+  - **Memory Management**: Handles the bridge between browser Blobs and emulator memory for save states.
+  - **Resolution Scaling**: Uses `ResizeObserver` to ensure the emulator canvas remains pixel-perfect regardless of the window size or orientation.
+- **Background Processes**:
+  - **Auto-Save Loop**: A non-blocking background task that snapshots game state every 30 seconds to the local database.
+  - **Telemetry Sampling**: Extracts real-time performance metrics (FPS, Core usage) to pass back to the UI dashboards.
+- **Error Recovery**: Implements a "Blue Screen of Death" (BSOD) system to catch WASM crashes and provide a safe "Eject" path for the user.
 
 ### 2.3 ROM Scanner Layer — `packages/core/src/files.ts`
 
@@ -223,8 +214,12 @@ retrovault/
 │       │   ├── App.tsx              # Root component (900+ lines)
 │       │   ├── index.css            # Themes, scanlines, CRT, textures, sliders
 │       │   └── components/
-│       │       └── GameBoy/
-│       │           └── EmulatorConsole.tsx
+│       │       ├── GameBoy/
+│       │       │   └── GameBoyShell.tsx
+│       │       ├── Logs/
+│       │       │   └── SystemLogs.tsx
+│       │       └── Telemetry/
+│       │           └── TelemetryDashboard.tsx
 │       └── package.json
 │
 ├── packages/
