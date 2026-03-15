@@ -376,7 +376,7 @@ function App() {
             playHistory={playHistory}
             addLog={addLog}
           />
-          <SystemLogs systemLogs={systemLogs} />
+          <SystemLogs logs={systemLogs} />
           <SaveStatesPanel
             saveStates={saveStates}
             handleCreateSave={handleCreateSave}
