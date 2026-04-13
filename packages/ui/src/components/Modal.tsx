@@ -39,7 +39,6 @@ export const Modal = ({ isOpen, onClose, title, children, width = 'md' }: ModalP
                         onClick={onClose}
                         className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
                     >
-                        {/* @ts-expect-error Type mismatch with React 19 vs 18 */}
                         <X size={20} />
                     </button>
                 </div>

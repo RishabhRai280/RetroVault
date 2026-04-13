@@ -9,7 +9,7 @@
  * without requiring API keys or user OAuth tokens.
  */
 
-import { GameMetadata } from './files';
+import type { GameMetadata } from './files';
 
 /**
  * Strips HTML tags from Wikipedia extracts to yield plain text.
