@@ -36,7 +36,7 @@ jobs:
       # Step 5: Run type checking
       # This checks if variables and functions are used correctly
       - name: Type Check
-        run: pnpm tsc -b
+        run: pnpm tsc --noEmit
 
       # Step 6: Run linting
       # This checks if the code follows the team's style rules
