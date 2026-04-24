@@ -19,7 +19,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 8
+          version: 9
 
       # Step 3: Install Node.js (the environment needed to run the project)
       - name: Setup Node.js
